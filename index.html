@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Gider</title>
+    <title>Finansal İçgörüler - Sadeleştirilmiş</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -81,9 +81,11 @@
     <div class="relative flex h-auto min-h-screen w-full flex-col">
         <header class="flex items-center p-4 pb-2 justify-between bg-background-light dark:bg-background-dark sticky top-0 z-10 border-b border-gray-200/10 dark:border-gray-800/80">
             <div class="flex size-12 shrink-0 items-center">
-                <span class="material-symbols-outlined text-gray-900 dark:text-white text-2xl">arrow_back</span>
+                
             </div>
-            <h1 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">İçgörüler (Tüm Veriler)</h1>
+            
+            <h1 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center"></h1>
+            
             <div class="flex w-12 items-center justify-end">
                 <button id="open-settings-modal-btn" class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-gray-900 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
                     <span class="material-symbols-outlined text-2xl">more_vert</span>
@@ -371,7 +373,6 @@
             const healthGaugeEl = document.getElementById('health-gauge');
             const healthStatusBadgeEl = document.getElementById('health-status-badge');
             const donutChartEl = document.getElementById('donut-chart');
-            // Tarih aralığı butonları kaldırıldı
             const settingsModal = document.getElementById('settings-modal'); 
             const resetDataBtn = document.getElementById('reset-data-btn');
             const darkModeToggle = document.getElementById('dark-mode-toggle');
@@ -413,7 +414,6 @@
             
             /**
              * Belirli bir işlemi (Gider veya Gelir) bulur.
-             * Artık sadece tek bir financialData nesnesinde arama yapar.
              */
             function findTransaction(transactionId) {
                 const id = parseInt(transactionId); 
@@ -489,8 +489,7 @@
 
 
             /**
-             * Sayfadaki tüm finansal verileri günceller. (Ana Gösterge Panosu)
-             * Artık aralık (range) parametresi almıyor.
+             * Sayfadaki tüm finansal verileri günceller.
              */
             function updateFinancialData() {
                 // Verileri hesapla
@@ -909,7 +908,7 @@
                 resetDataBtn.addEventListener('click', handleResetAllData);
 
 
-                // İlk verileri yükle (Artık tarih aralığı seçimi yok)
+                // İlk verileri yükle
                 updateFinancialData();
             });
         </script>
