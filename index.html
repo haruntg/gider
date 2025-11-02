@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html class="dark" lang="tr">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Finansal İçgörüler - Sadeleştirilmiş</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    
+    <script>
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#135bec",
+                "background-light": "#f6f6f8",
+                "background-dark": "#101622",
+              },
+              fontFamily: {
+                "display": ["Manrope", "sans-serif"]
+              },
+              borderRadius: {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+            },
+          },
+        }
+      </script>
+    <style>
+        .material-symbols-outlined {
+          font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+        
+        /* MODAL ANİMASYON STİLLERİ */
+        .modal-backdrop {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            display: none; 
+            z-index: 50; 
+            pointer-events: none; 
+        }
+        .modal-backdrop.open {
+            opacity: 1;
+            display: flex; 
+            pointer-events: auto; 
+        }
+
+        .modal-content {
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 60; 
+        }
+        .modal-backdrop.open .modal-content {
+            transform: translateY(0);
+        }
+
+        /* Ayarlar menüsü için sağdan açılma animasyonu */
+        #settings-modal .modal-content {
+            transform: translateX(100%);
+        }
+        #settings-modal.open .modal-content {
+            transform: translateX(0);
+        }
+      </style>
+    <style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+      </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div class="relative flex h-auto min-h-screen w-full flex-col">
+        <header class="flex items-center p-4 pb-2 justify-between bg-background-light dark:bg-background-dark sticky top-0 z-10 border-b border-gray-200/10 dark:border-gray-800/80">
+            <div class="flex size-12 shrink-0 items-center">
+                <span class="material-symbols-outlined text-gray-900 dark:text-white text-2xl">arrow_back</span>
+            </div>
+            <h1 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">İçgörüler (Tüm Veriler)</h1>
+            <div class="flex w-12 items-center justify-end">
+                <button id="open-settings-modal-btn" class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-gray-900 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+                    <span class="material-symbols-outlined text-2xl">more_vert</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 flex-col pb-8">
+            <div class="h-4"></div>
+            
+            <div class="flex flex-wrap gap-4 p-4">
+                <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50">
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">Toplam Harcama</p>
+                    <p class="text-gray-900 dark:text-white tracking-light text-2xl font-bold leading-tight" id="total-spending">₺0,00</p>
+                </div>
+                <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50">
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">Toplam Gelir</p>
+                    <p class="text-gray-900 dark:text-white tracking-light text-2xl font-bold leading-tight" id="total-income">₺0,00</p>
+                </div>
+            </div>
+            
+            <h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Kategori Dağılımı</h2>
+
+            <div class="px-4 py-2">
+                <div class="flex min-w-72 flex-1 flex-col gap-4 rounded-xl p-6 bg-gray-100 dark:bg-gray-800/50">
+                    <div class="flex justify-between items-center">
+                        <p class="text-gray-900 dark:text-white text-base font-bold leading-normal">Kategoriye Göre Harcama</p>
+                        <span class="material-symbols-outlined text-gray-500 dark:text-gray-400">info</span>
+                    </div>
+                    <div class="relative w-48 h-48 mx-auto">
+                        <svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36" id="donut-chart">
+                            </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">Toplam Harcama</p>
+                            <p class="text-gray-900 dark:text-white tracking-tight text-2xl font-bold leading-tight" id="chart-total-spent">₺0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">En Çok Harcama Kategorileri</h2>
+            <div class="flex flex-col gap-3 px-4" id="top-spending-list">
+                </div>
+            
+            <h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Finansal Sağlık</h2>
+            <div class="px-4 py-2 mb-8">
+                <div class="flex flex-col gap-4 rounded-xl p-6 bg-gray-100 dark:bg-gray-800/50">
+                    <div class="flex justify-between items-center">
+                        <p class="text-gray-900 dark:text-white text-base font-bold leading-normal">Puanınız</p>
+                        <div class="flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-sm font-semibold text-green-400" id="health-status-badge">
+                            <span class="material-symbols-outlined text-base">trending_up</span>
+                            <span>İyi</span>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">Genel olarak <span class="font-bold text-gray-800 dark:text-gray-200" id="saved-amount">₺0,00</span> net varlığınız/borcunuz bulunmaktadır.</p>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                        <div class="bg-green-500 h-3 rounded-full" id="health-gauge" data-alt="Yeşil ilerleme çubuğu %75 dolu." style="width: 75%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>Çalışma Gerekli</span>
+                        <span>Mükemmel</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="sticky bottom-0 p-4 bg-background-light dark:bg-background-dark border-t border-gray-200/10 dark:border-gray-800/80">
+            <button id="open-expense-modal-btn" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-primary text-white shadow-lg shadow-primary/30">
+                <span class="material-symbols-outlined">add_circle</span>
+                <p class="text-base font-bold leading-normal">Yeni İşlem Ekle</p>
+            </button>
+        </footer>
+
+
+        <div id="expense-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
+            <div class="modal-content w-full max-w-lg bg-gray-100 dark:bg-gray-800/95 rounded-t-xl shadow-2xl p-6" role="dialog" aria-modal="true">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="expense-modal-title">Yeni İşlem Ekle</h3>
+                    <button type="button" data-close-modal="expense-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <form id="add-expense-form" class="space-y-4">
+                    <div class="flex justify-center gap-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                        <div class="flex items-center gap-2 flex-1">
+                            <input type="radio" id="type-expense" name="transaction-type" value="expense" checked 
+                                class="form-radio text-red-500 border-red-500 bg-gray-100 dark:bg-gray-800 focus:ring-red-500/50">
+                            <label for="type-expense" class="text-sm font-medium text-gray-900 dark:text-gray-300">Gider</label>
+                        </div>
+                        <div class="flex items-center gap-2 flex-1">
+                            <input type="radio" id="type-income" name="transaction-type" value="income" 
+                                class="form-radio text-green-500 border-green-500 bg-gray-100 dark:bg-gray-800 focus:ring-green-500/50">
+                            <label for="type-income" class="text-sm font-medium text-gray-900 dark:text-gray-300">Gelir</label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="expense-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tutar (₺)</label>
+                        <input type="number" id="expense-amount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
+                    </div>
+                    <div>
+                        <label for="expense-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
+                        <input type="text" id="expense-description" name="description" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
+                    </div>
+                    <div id="category-field">
+                        <label for="expense-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori</label>
+                        <select id="expense-category" name="category" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
+                            </select>
+                    </div>
+                    <div>
+                        <label for="expense-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tarih</label>
+                        <input type="date" id="expense-date" name="date" required value="" class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
+                    </div>
+                    
+                    <button type="submit" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-primary text-white text-base font-bold leading-normal mt-6">
+                        İşlemi Kaydet
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="category-details-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
+            <div class="modal-content w-full max-w-lg bg-gray-100 dark:bg-gray-800/95 rounded-t-xl shadow-2xl p-6 max-h-[80vh] overflow-y-auto" role="dialog" aria-modal="true">
+                <div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-100 dark:bg-gray-800/95 pt-2 pb-4 border-b border-gray-200/50 dark:border-gray-700/50">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="category-details-modal-title">... Gider Detayları</h3>
+                    <button type="button" data-close-modal="category-details-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div id="expense-details-list" class="space-y-3">
+                    </div>
+                <p id="no-expenses-message" class="text-gray-500 dark:text-gray-400 text-center py-8 hidden">Bu kategoride henüz bir harcama yok.</p>
+            </div>
+        </div>
+
+        <div id="edit-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
+            <div class="modal-content w-full max-w-lg bg-gray-100 dark:bg-gray-800/95 rounded-t-xl shadow-2xl p-6" role="dialog" aria-modal="true">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="edit-modal-title">İşlemi Düzenle</h3>
+                    <button type="button" data-close-modal="edit-modal" data-reopen-modal="category-details-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form id="edit-expense-form" class="space-y-4">
+                    <input type="hidden" id="edit-expense-id">
+                    <input type="hidden" id="edit-transaction-type">
+                    <input type="hidden" id="edit-original-category-id">
+
+                    <div>
+                        <label for="edit-expense-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tutar (₺)</label>
+                        <input type="number" id="edit-expense-amount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <div>
+                        <label for="edit-expense-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
+                        <input type="text" id="edit-expense-description" name="description" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <div id="edit-category-field">
+                        <label for="edit-expense-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori</label>
+                        <select id="edit-expense-category" name="category" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
+                            </select>
+                    </div>
+                    
+                    <div>
+                        <label for="edit-expense-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tarih</label>
+                        <input type="date" id="edit-expense-date" name="date" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
+                    </div>
+                    
+                    <button type="submit" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-primary text-white text-base font-bold leading-normal mt-6">
+                        Değişiklikleri Kaydet
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="modal-backdrop fixed inset-0 z-50 justify-end items-stretch">
+            <div class="modal-content w-full max-w-sm bg-gray-100 dark:bg-gray-800/95 shadow-2xl p-6 flex flex-col" role="dialog" aria-modal="true">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Ayarlar</h3>
+                    <button type="button" data-close-modal="settings-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="space-y-4 flex-1">
+                    <div class="flex justify-between items-center p-3 rounded-xl bg-gray-200 dark:bg-gray-700/50">
+                        <span class="text-gray-900 dark:text-white font-medium">Karanlık Mod</span>
+                        <input type="checkbox" id="dark-mode-toggle" class="form-switch h-6 w-11 appearance-none bg-gray-300 rounded-full checked:bg-primary transition duration-200 ease-in-out">
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-300 dark:border-gray-700">
+                    <button id="reset-data-btn" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-red-600 text-white text-base font-bold leading-normal shadow-lg shadow-red-600/30">
+                        <span class="material-symbols-outlined">delete_forever</span>
+                        <p>Tüm Verileri Sıfırla</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <script>
+            // --- 1. Statik Veri Kaynağı ve Kapsamlı Veri Modeli ---
+            const CATEGORIES = [
+                { id: 'yeme', name: 'Yeme & İçme', icon: 'restaurant', color: 'blue', stroke: '#2c5282' },
+                { id: 'eglence', name: 'Eğlence', icon: 'movie', color: 'purple', stroke: '#6b46c1' },
+                { id: 'ulasim', name: 'Ulaşım', icon: 'commute', color: 'pink', stroke: '#d53f8c' },
+                { id: 'fatura', name: 'Kira & Faturalar', icon: 'receipt_long', color: 'red', stroke: '#e53e3e' },
+                { id: 'market', name: 'Market', icon: 'shopping_cart', color: 'teal', stroke: '#38b2ac' },
+                { id: 'seyahat', name: 'Seyahat', icon: 'flight', color: 'yellow', stroke: '#ecc94b' },
+                { id: 'giyim', name: 'Giyim', icon: 'styler', color: 'indigo', stroke: '#5a67d8' },
+                { id: 'diger', name: 'Diğer', icon: 'more_horiz', color: 'gray', stroke: '#a0aec0' },
+            ];
+            
+            let nextExpenseId = 1000; 
+            let nextIncomeId = 2000;
+
+            // Önceki tüm aralıklardaki verileri tek bir büyük diziye birleştirme
+            const getInitialFullData = () => {
+                let fullData = { expenses: [], incomes: [] };
+                
+                // Demo verilerini tek bir yerde topluyoruz (önceki koddan kalan tüm demo verileri)
+                const allDemoData = [
+                    // bu-ay
+                    { id: nextExpenseId++, type: 'expense', categoryId: 'yeme', amount: 450.00, description: 'Restoran Yemeği', date: '2025-11-01' },
+                    { id: nextExpenseId++, type: 'expense', categoryId: 'yeme', amount: 530.30, description: 'Kahve ve Atıştırmalık', date: '2025-11-02' },
+                    { id: nextExpenseId++, type: 'expense', categoryId: 'eglence', amount: 612.70, description: 'Konser Bileti', date: '2025-11-03' },
+                    { id: nextExpenseId++, type: 'expense', categoryId: 'ulasim', amount: 490.15, description: 'Yakıt Dolumu', date: '2025-11-04' },
+                    { id: nextExpenseId++, type: 'expense', categoryId: 'fatura', amount: 367.63, description: 'İnternet Faturası', date: '2025-11-05' },
+                    { id: nextIncomeId++, type: 'income', amount: 4500.00, description: 'Aylık Maaş', date: '2025-11-01' },
+                    
+                    // son-3-ay (tekrar edenler hariç, yeni ID'ler atandı)
+                    { id: 10000, type: 'expense', categoryId: 'market', amount: 200.00, description: 'Kasım Market', date: '2025-11-10' },
+                    { id: 10001, type: 'expense', categoryId: 'yeme', amount: 500.00, description: 'Ekim Restoranlar', date: '2025-10-01' },
+                    { id: 10002, type: 'expense', categoryId: 'fatura', amount: 800.00, description: 'Ekim Kira', date: '2025-10-15' },
+                    { id: 10003, type: 'expense', categoryId: 'market', amount: 300.00, description: 'Ekim Market', date: '2025-10-05' },
+                    { id: 10004, type: 'expense', categoryId: 'eglence', amount: 400.00, description: 'Eylül Sinema', date: '2025-09-01' },
+                    { id: 10005, type: 'expense', categoryId: 'ulasim', amount: 250.00, description: 'Eylül Ulaşım', date: '2025-09-10' },
+                    { id: 10006, type: 'expense', categoryId: 'giyim', amount: 600.00, description: 'Eylül Alışveriş', date: '2025-09-20' },
+                    { id: 20000, type: 'income', amount: 4500.00, description: 'Ekim Maaş', date: '2025-10-01' },
+                    { id: 20001, type: 'income', amount: 4500.00, description: 'Eylül Maaş', date: '2025-09-01' },
+                    
+                    // bu-yil (tekrar edenler hariç, yeni ID'ler atandı)
+                    { id: 30000, type: 'expense', categoryId: 'seyahat', amount: 5000.00, description: 'Yaz Tatili', date: '2025-07-10' },
+                    { id: 30001, type: 'expense', categoryId: 'fatura', amount: 1200.00, description: 'Ocak Kira', date: '2025-01-01' },
+                    { id: 30002, type: 'expense', categoryId: 'fatura', amount: 1200.00, description: 'Şubat Kira', date: '2025-02-01' },
+                    { id: 30003, type: 'expense', categoryId: 'giyim', amount: 800.00, description: 'Kışlık Alışveriş', date: '2025-01-20' },
+                    { id: 30004, type: 'expense', categoryId: 'diger', amount: 1000.00, description: 'Hobi Malzemeleri', date: '2025-04-15' },
+                    { id: 30005, type: 'expense', categoryId: 'yeme', amount: 350.00, description: 'Haziran Yemeği', date: '2025-06-05' },
+                    { id: 40000, type: 'income', amount: 4500.00, description: 'Ocak Maaş', date: '2025-01-01' },
+                    { id: 40001, type: 'income', amount: 4500.00, description: 'Şubat Maaş', date: '2025-02-01' },
+                    { id: 40002, type: 'income', amount: 4500.00, description: 'Mart Maaş', date: '2025-03-01' },
+                    { id: 40003, type: 'income', amount: 4500.00, description: 'Nisan Maaş', date: '2025-04-01' },
+                    { id: 40004, type: 'income', amount: 4500.00, description: 'Mayıs Maaş', date: '2025-05-01' },
+                    { id: 40005, type: 'income', amount: 4500.00, description: 'Haziran Maaş', date: '2025-06-01' },
+                    { id: 40006, type: 'income', amount: 4500.00, description: 'Temmuz Maaş', date: '2025-07-01' },
+                    { id: 40007, type: 'income', amount: 4500.00, description: 'Ağustos Maaş', date: '2025-08-01' },
+                ];
+                
+                allDemoData.forEach(item => {
+                    if (item.type === 'expense') {
+                        fullData.expenses.push(item);
+                    } else {
+                        fullData.incomes.push(item);
+                    }
+                });
+
+                return fullData;
+            }
+
+            // Artık tek bir veri kaynağımız var
+            let financialData = getInitialFullData();
+
+            let currentCategory = null; 
+            
+            // --- 2. DOM Öğelerini Seçme ---
+            const totalSpendingEl = document.getElementById('total-spending');
+            const totalIncomeEl = document.getElementById('total-income');
+            const chartTotalSpentEl = document.getElementById('chart-total-spent');
+            const topSpendingListEl = document.getElementById('top-spending-list');
+            const savedAmountEl = document.getElementById('saved-amount');
+            const healthGaugeEl = document.getElementById('health-gauge');
+            const healthStatusBadgeEl = document.getElementById('health-status-badge');
+            const donutChartEl = document.getElementById('donut-chart');
+            // Tarih aralığı butonları kaldırıldı
+            const settingsModal = document.getElementById('settings-modal'); 
+            const resetDataBtn = document.getElementById('reset-data-btn');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+            // Modal Elementleri (Kalanlar)
+            const expenseModal = document.getElementById('expense-modal');
+            const addExpenseForm = document.getElementById('add-expense-form');
+            const expenseCategorySelect = document.getElementById('expense-category');
+            const expenseDateInput = document.getElementById('expense-date'); 
+            const transactionTypeRadios = document.querySelectorAll('input[name="transaction-type"]');
+            const categoryField = document.getElementById('category-field');
+            const categoryDetailsModal = document.getElementById('category-details-modal');
+            const categoryDetailsModalTitle = document.getElementById('category-details-modal-title');
+            const expenseDetailsList = document.getElementById('expense-details-list');
+            const noExpensesMessage = document.getElementById('no-expenses-message');
+            const editModal = document.getElementById('edit-modal');
+            const editExpenseForm = document.getElementById('edit-expense-form');
+            const editModalTitle = document.getElementById('edit-modal-title');
+            const editExpenseId = document.getElementById('edit-expense-id');
+            const editTransactionType = document.getElementById('edit-transaction-type'); 
+            const editOriginalCategoryId = document.getElementById('edit-original-category-id');
+            const editExpenseAmount = document.getElementById('edit-expense-amount');
+            const editExpenseDescription = document.getElementById('edit-expense-description');
+            const editExpenseCategory = document.getElementById('edit-expense-category');
+            const editExpenseDate = document.getElementById('edit-expense-date'); 
+            const editCategoryField = document.getElementById('edit-category-field');
+
+
+            // --- 3. Yardımcı Fonksiyonlar ---
+            
+            function formatCurrency(amount, withSymbol = true) {
+                const formatted = (Math.round(amount * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return withSymbol ? `₺${formatted}` : formatted;
+            }
+
+            function getCategoryById(categoryId) {
+                return CATEGORIES.find(c => c.id === categoryId);
+            }
+            
+            /**
+             * Belirli bir işlemi (Gider veya Gelir) bulur.
+             * Artık sadece tek bir financialData nesnesinde arama yapar.
+             */
+            function findTransaction(transactionId) {
+                const id = parseInt(transactionId); 
+                let transaction = financialData.expenses.find(t => t.id === id);
+                if (transaction) return transaction;
+                
+                transaction = financialData.incomes.find(t => t.id === id);
+                return transaction || null;
+            }
+
+            function updateHealthBadge(score, statusText) {
+                 let bgColor = '';
+                let textColor = '';
+                let icon = '';
+
+                if (score >= 80) {
+                    bgColor = 'bg-green-500/20';
+                    textColor = 'text-green-400';
+                    icon = 'trending_up';
+                } else if (score >= 60) {
+                    bgColor = 'bg-yellow-500/20';
+                    textColor = 'text-yellow-400';
+                    icon = 'trending_flat';
+                } else {
+                    bgColor = 'bg-red-500/20';
+                    textColor = 'text-red-400';
+                    icon = 'trending_down';
+                }
+
+                healthStatusBadgeEl.className = 'flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold';
+                healthStatusBadgeEl.classList.add(bgColor, textColor);
+                
+                healthStatusBadgeEl.innerHTML = `
+                    <span class="material-symbols-outlined text-base">${icon}</span>
+                    <span>${statusText}</span>
+                `;
+            }
+
+            function calculateSummaryData(expenses, totalSpending) {
+                const breakdown = {}; 
+
+                expenses.forEach(expense => {
+                    if (!breakdown[expense.categoryId]) {
+                        breakdown[expense.categoryId] = { amount: 0, count: 0 };
+                    }
+                    breakdown[expense.categoryId].amount += expense.amount;
+                    breakdown[expense.categoryId].count += 1;
+                });
+
+                const categoriesWithData = Object.keys(breakdown)
+                    .map(key => {
+                        const categoryInfo = getCategoryById(key);
+                        const amount = breakdown[key].amount;
+                        const percent = totalSpending > 0 ? Math.round((amount / totalSpending) * 100) : 0;
+                        
+                        return {
+                            ...categoryInfo,
+                            amount: amount,
+                            transactions: breakdown[key].count,
+                            percent: percent,
+                            id: key 
+                        };
+                    })
+                    .sort((a, b) => b.amount - a.amount);
+
+                let dashOffset = 0;
+                return categoriesWithData.map(cat => {
+                    const result = { ...cat, dashOffset: dashOffset };
+                    dashOffset -= cat.percent;
+                    return result;
+                });
+            }
+
+
+            /**
+             * Sayfadaki tüm finansal verileri günceller. (Ana Gösterge Panosu)
+             * Artık aralık (range) parametresi almıyor.
+             */
+            function updateFinancialData() {
+                // Verileri hesapla
+                const filteredExpenses = financialData.expenses; 
+                const filteredIncomes = financialData.incomes;
+                
+                const totalSpending = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+                const totalIncome = filteredIncomes.reduce((sum, i) => sum + i.amount, 0);
+                const savedAmount = totalIncome - totalSpending; // Net Varlık / Net Borç
+                
+                // Sağlık Puanı (Örnek Mantık: Gelirin %50'sini aşmayan harcama iyidir.)
+                let healthScore = totalIncome > 0 ? Math.min(100, 100 - (totalSpending / totalIncome) * 100 + 50) : 0;
+                healthScore = Math.round(healthScore);
+                
+                // Kategori listesini ve grafik verilerini hazırla
+                const topCategories = calculateSummaryData(filteredExpenses, totalSpending);
+
+
+                // I. İstatistik Kartlarını Güncelle
+                totalSpendingEl.textContent = formatCurrency(totalSpending);
+                totalIncomeEl.textContent = formatCurrency(totalIncome);
+                chartTotalSpentEl.textContent = formatCurrency(Math.round(totalSpending), true).replace(',00', '');
+
+                // II. Finansal Sağlık Göstergesini Güncelle
+                savedAmountEl.textContent = formatCurrency(savedAmount);
+                healthGaugeEl.style.width = `${healthScore}%`;
+                
+                let statusText = 'Düşük';
+                if (savedAmount < 0) {
+                    statusText = 'Borçlu';
+                    healthGaugeEl.classList.remove('bg-green-500', 'bg-yellow-500');
+                    healthGaugeEl.classList.add('bg-red-500');
+                } else if (healthScore >= 80) {
+                    statusText = 'Mükemmel';
+                    healthGaugeEl.classList.remove('bg-red-500', 'bg-yellow-500');
+                    healthGaugeEl.classList.add('bg-green-500');
+                } else if (healthScore >= 60) {
+                    statusText = 'İyi';
+                    healthGaugeEl.classList.remove('bg-red-500', 'bg-green-500');
+                    healthGaugeEl.classList.add('bg-yellow-500');
+                } else if (healthScore >= 40) {
+                    statusText = 'Orta';
+                    healthGaugeEl.classList.remove('bg-green-500', 'bg-yellow-500');
+                    healthGaugeEl.classList.add('bg-red-500');
+                }
+                
+                if(savedAmount >= 0) { // Sadece tasarruf varsa pozitif puan ver
+                    updateHealthBadge(healthScore, statusText);
+                } else { // Borç varsa kırmızı rozet
+                    updateHealthBadge(0, statusText); 
+                }
+
+
+                // III. En Çok Harcama Listesini Güncelle (Tıklanabilir Yapı)
+                topSpendingListEl.innerHTML = topCategories.map(category => `
+                    <div class="top-spending-item flex items-center gap-4 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50 cursor-pointer hover:ring-2 ring-primary/50 transition-all duration-150" 
+                         data-category-id="${category.id}">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-${category.color}-500/20 text-${category.color}-400">
+                            <span class="material-symbols-outlined">${category.icon}</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-bold text-gray-900 dark:text-white">${category.name}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${category.transactions} İşlem</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-gray-900 dark:text-white">${formatCurrency(category.amount)}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">%${category.percent}</p>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.top-spending-item').forEach(item => {
+                    item.removeEventListener('click', handleCategoryClick); 
+                    item.addEventListener('click', handleCategoryClick); 
+                });
+
+
+                // IV. Donut Grafik SVG'sini Güncelle
+                donutChartEl.innerHTML = totalSpending > 0 ? topCategories.map(category => `
+                    <circle cx="18" cy="18" fill="none" r="15.9155" 
+                            stroke="${category.stroke}" 
+                            stroke-dasharray="${category.percent}, 100" 
+                            stroke-dashoffset="${category.dashOffset}" 
+                            stroke-width="3.8"
+                    ></circle>
+                `).join('') : '<circle cx="18" cy="18" fill="none" r="15.9155" stroke="#a0aec0" stroke-dasharray="100, 0" stroke-width="3.8"></circle>';
+            }
+
+            // --- 4. Modal ve İşlem Yönetimi İşlevleri ---
+
+            function openModal(modalEl) {
+                modalEl.classList.add('open');
+            }
+
+            function closeModal(modalEl) {
+                modalEl.classList.remove('open');
+            }
+
+            function toggleCategoryField(type) {
+                if (type === 'income') {
+                    categoryField.classList.add('hidden');
+                    expenseCategorySelect.removeAttribute('required');
+                } else {
+                    categoryField.classList.remove('hidden');
+                    expenseCategorySelect.setAttribute('required', 'required');
+                }
+            }
+
+            function toggleEditCategoryField(type) {
+                if (type === 'income') {
+                    editCategoryField.classList.add('hidden');
+                    editExpenseCategory.removeAttribute('required');
+                } else {
+                    editCategoryField.classList.remove('hidden');
+                    editExpenseCategory.setAttribute('required', 'required');
+                }
+            }
+            
+            function handleCategoryClick(event) {
+                const categoryItem = event.currentTarget;
+                const categoryId = categoryItem.getAttribute('data-category-id');
+                currentCategory = categoryId; 
+
+                const categoryInfo = getCategoryById(categoryId);
+                categoryDetailsModalTitle.textContent = `${categoryInfo.name} Gider Detayları`;
+
+                renderCategoryExpenseDetails(categoryId); 
+                openModal(categoryDetailsModal);
+            }
+
+            function handleDeleteTransaction(transactionId, transactionType) {
+                if (!confirm("Bu işlemi silmek istediğinizden emin misiniz?")) {
+                    return;
+                }
+
+                const targetArray = transactionType.includes('expense') ? financialData.expenses : financialData.incomes;
+                
+                const initialTransactionIndex = targetArray.findIndex(t => t.id === transactionId);
+                
+                if (initialTransactionIndex !== -1) {
+                    targetArray.splice(initialTransactionIndex, 1);
+                    
+                    updateFinancialData();
+                    closeModal(editModal); 
+                    
+                    if (categoryDetailsModal.classList.contains('open') && transactionType.includes('expense')) {
+                        renderCategoryExpenseDetails(currentCategory);
+                    } else if (categoryDetailsModal.classList.contains('open') && transactionType.includes('income')) {
+                        closeModal(categoryDetailsModal); 
+                    }
+                    
+                    alert("İşlem başarıyla silindi.");
+                } else {
+                    alert("İşlem bulunamadı.");
+                }
+            }
+            
+            function handleEditTransactionFromCategoryList(transactionId) {
+                const transaction = findTransaction(transactionId);
+                if (!transaction) return;
+                
+                const type = transaction.type; 
+
+                editExpenseId.value = transaction.id;
+                editTransactionType.value = type;
+                editModalTitle.textContent = (type === 'expense' ? 'Gideri' : 'Geliri') + ' Düzenle';
+
+                toggleEditCategoryField(type);
+
+                editExpenseAmount.value = transaction.amount.toFixed(2);
+                editExpenseDescription.value = transaction.description;
+                editExpenseDate.value = transaction.date; 
+
+                if (type === 'expense') {
+                    editOriginalCategoryId.value = transaction.categoryId; 
+                    editExpenseCategory.value = transaction.categoryId;
+                } else {
+                    editOriginalCategoryId.value = ''; 
+                }
+                
+                closeModal(categoryDetailsModal); 
+                openModal(editModal);     
+            }
+
+            function handleEditFormSubmit(event) {
+                event.preventDefault();
+                
+                const transactionId = parseInt(editExpenseId.value);
+                const type = editTransactionType.value;
+                const newAmount = parseFloat(editExpenseAmount.value);
+                const newDescription = editExpenseDescription.value;
+                const newDate = editExpenseDate.value; 
+
+                let newCategoryId = '';
+                if (type === 'expense') {
+                    newCategoryId = editExpenseCategory.value;
+                    if (!newCategoryId) { alert("Lütfen bir kategori seçin."); return; }
+                }
+
+                // Tekil veri kümesinde işlemi bul ve güncelle
+                const targetArray = type === 'expense' ? financialData.expenses : financialData.incomes;
+                const transaction = targetArray.find(t => t.id === transactionId);
+                
+                if (transaction) {
+                    transaction.amount = newAmount;
+                    transaction.description = newDescription;
+                    transaction.date = newDate; 
+                    
+                    if (type === 'expense') {
+                        transaction.categoryId = newCategoryId; 
+                    }
+
+                    updateFinancialData();
+                    
+                    alert("İşlem başarıyla güncellendi.");
+
+                    closeModal(editModal);
+                    
+                    if (type === 'expense') { 
+                        currentCategory = newCategoryId || editOriginalCategoryId.value;
+                        openModal(categoryDetailsModal);
+                        renderCategoryExpenseDetails(currentCategory);
+                    }
+                }
+            }
+
+            function handleAddTransaction(event) {
+                event.preventDefault(); 
+
+                const type = document.querySelector('input[name="transaction-type"]:checked').value;
+                const amount = parseFloat(document.getElementById('expense-amount').value);
+                const description = document.getElementById('expense-description').value;
+                const date = document.getElementById('expense-date').value; 
+                
+                let categoryId = type === 'expense' ? document.getElementById('expense-category').value : null;
+
+                if (isNaN(amount) || amount <= 0 || !date || (type === 'expense' && !categoryId)) {
+                    alert("Lütfen geçerli bir tutar, açıklama ve tarih girin (Gider ise kategori zorunludur).");
+                    return;
+                }
+                
+                const newTransaction = {
+                    id: type === 'expense' ? nextExpenseId++ : nextIncomeId++, 
+                    type: type,
+                    amount: amount,
+                    description: description,
+                    date: date
+                };
+                
+                if (type === 'expense') {
+                    newTransaction.categoryId = categoryId;
+                    financialData.expenses.push(newTransaction);
+                } else {
+                    financialData.incomes.push(newTransaction);
+                }
+
+                const transactionName = type === 'expense' ? 'Gider' : 'Gelir';
+                alert(`🎉 ${formatCurrency(amount)} tutarındaki ${transactionName} başarıyla eklendi!`);
+
+                updateFinancialData();
+                closeModal(expenseModal);
+                addExpenseForm.reset(); 
+                document.getElementById('type-expense').checked = true;
+                toggleCategoryField('expense');
+                expenseDateInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            function renderCategoryExpenseDetails(categoryId) {
+                const categoryExpenses = financialData.expenses 
+                    .filter(e => e.categoryId === categoryId)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date)); 
+
+                if (categoryExpenses.length === 0) {
+                    expenseDetailsList.innerHTML = '';
+                    noExpensesMessage.classList.remove('hidden');
+                    return;
+                }
+
+                noExpensesMessage.classList.add('hidden');
+                
+                expenseDetailsList.innerHTML = categoryExpenses.map(e => {
+                    const category = getCategoryById(e.categoryId);
+                    const formattedDate = new Date(e.date).toLocaleDateString('tr-TR');
+                    return `
+                        <div class="flex justify-between items-center p-3 rounded-lg bg-gray-200 dark:bg-gray-700/70 border border-gray-300/50 dark:border-gray-600/50">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-bold text-gray-900 dark:text-white truncate">${e.description || 'Açıklama Yok'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${formattedDate} &bull; ${category.name}</p>
+                            </div>
+                            <div class="text-right flex items-center gap-2 shrink-0">
+                                <span class="font-bold text-lg text-red-600 dark:text-red-400">${formatCurrency(e.amount)}</span>
+                                <button type="button" data-edit-id="${e.id}" class="edit-transaction-btn-from-list text-primary hover:text-primary/80 transition-colors duration-150 p-1 rounded-full">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button type="button" data-delete-id="${e.id}" data-type="expense-edit" class="delete-transaction-btn-from-list text-red-500 hover:text-red-400 transition-colors duration-150 p-1 rounded-full">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.querySelectorAll('.delete-transaction-btn-from-list').forEach(btn => {
+                    btn.addEventListener('click', (e) => handleDeleteTransaction(parseInt(e.currentTarget.getAttribute('data-delete-id')), e.currentTarget.getAttribute('data-type')));
+                });
+                document.querySelectorAll('.edit-transaction-btn-from-list').forEach(btn => {
+                    btn.addEventListener('click', (e) => handleEditTransactionFromCategoryList(parseInt(e.currentTarget.getAttribute('data-edit-id'))));
+                });
+            }
+
+            function populateCategorySelects() {
+                const optionsHtml = CATEGORIES.map(cat => 
+                    `<option value="${cat.id}">${cat.name}</option>`
+                ).join('');
+                
+                expenseCategorySelect.innerHTML = optionsHtml;
+                editExpenseCategory.innerHTML = optionsHtml;
+            }
+
+            // --- SIFIRLAMA İŞLEVİ ---
+            function handleResetAllData() {
+                if (confirm("UYARI: Tüm harcamalarınız ve gelirleriniz silinecektir! Bu işlemi geri alamazsınız. Devam etmek istiyor musunuz?")) {
+                    financialData = { expenses: [], incomes: [] }; // Verileri tamamen sıfırla
+                    nextExpenseId = 1000;
+                    nextIncomeId = 2000;
+
+                    updateFinancialData();
+                    closeModal(settingsModal);
+                    alert("Tüm finansal verileriniz başarıyla sıfırlandı.");
+                }
+            }
+
+            // --- Karanlık Mod İşlevi (Ekstra) ---
+            function toggleDarkMode(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }
+            
+            // --- 5. Başlatma ve Olay Dinleyicileri ---
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                // Karanlık mod kontrolü
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    toggleDarkMode(true);
+                    darkModeToggle.checked = true;
+                }
+
+                darkModeToggle.addEventListener('change', (e) => {
+                    toggleDarkMode(e.target.checked);
+                });
+                
+                // Kategori seçim kutularını doldur
+                populateCategorySelects();
+                
+                // Varsayılan olarak bugünün tarihini ayarla
+                const today = new Date().toISOString().split('T')[0];
+                expenseDateInput.value = today;
+
+                // İşlem Tipi Değişikliği Dinleyicisi
+                transactionTypeRadios.forEach(radio => {
+                    radio.addEventListener('change', (e) => toggleCategoryField(e.target.value));
+                });
+
+                // Modal Kapatma Dinleyicileri için ortak işlev
+                const setupModalListeners = (modalId, formId = null, reopenModalId = null) => {
+                    const modalEl = document.getElementById(modalId);
+                    
+                    // Kapatma butonları
+                    document.querySelectorAll(`[data-close-modal="${modalId}"]`).forEach(btn => btn.addEventListener('click', () => {
+                        closeModal(modalEl);
+                        if (reopenModalId) {
+                            openModal(document.getElementById(reopenModalId));
+                        }
+                    }));
+                    
+                    // Arka plana tıklama
+                    modalEl.addEventListener('click', (e) => { 
+                        if (e.target.id === modalId) {
+                            closeModal(modalEl);
+                            if (reopenModalId) {
+                                openModal(document.getElementById(reopenModalId));
+                            }
+                        }
+                    });
+
+                    // Form Gönderim Dinleyicileri
+                    if (formId === 'add-expense-form') {
+                        document.getElementById(formId).addEventListener('submit', handleAddTransaction);
+                    } else if (formId === 'edit-expense-form') {
+                        document.getElementById(formId).addEventListener('submit', handleEditFormSubmit);
+                    }
+                };
+
+                // Gider/İşlem Ekleme Modal Dinleyicileri
+                document.getElementById('open-expense-modal-btn').addEventListener('click', () => {
+                    openModal(expenseModal);
+                    document.getElementById('type-expense').checked = true;
+                    toggleCategoryField('expense');
+                });
+                setupModalListeners('expense-modal', 'add-expense-form');
+                
+                // Kategori Detay Modal Dinleyicileri
+                setupModalListeners('category-details-modal');
+
+                // İşlem Düzenleme Modal Dinleyicileri
+                setupModalListeners('edit-modal', 'edit-expense-form', 'category-details-modal');
+
+                // AYARLAR MODAL DİNLEYİCİLERİ
+                document.getElementById('open-settings-modal-btn').addEventListener('click', () => openModal(settingsModal));
+                setupModalListeners('settings-modal'); 
+                
+                // SIFIRLAMA BUTONU DİNLEYİCİSİ
+                resetDataBtn.addEventListener('click', handleResetAllData);
+
+
+                // İlk verileri yükle (Artık tarih aralığı seçimi yok)
+                updateFinancialData();
+            });
+        </script>
+
+    </div>
+</body>
+</html>
