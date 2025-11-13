@@ -1,918 +1,1698 @@
 <!DOCTYPE html>
-<html class="dark" lang="tr">
+<html class="light" lang="tr">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Gider</title>
+    <title>Araç Bilgi Sistemi - SPA</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     
-    <script>
-        tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              colors: {
-                "primary": "#135bec",
-                "background-light": "#f6f6f8",
-                "background-dark": "#101622",
-              },
-              fontFamily: {
-                "display": ["Manrope", "sans-serif"]
-              },
-              borderRadius: {
-                "DEFAULT": "0.25rem",
-                "lg": "0.5rem",
-                "xl": "0.75rem",
-                "full": "9999px"
-              },
-            },
-          },
-        }
-      </script>
     <style>
         .material-symbols-outlined {
-          font-variation-settings:
-            'FILL' 0,
-            'wght' 400,
-            'GRAD' 0,
-            'opsz' 24
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        
-        /* MODAL ANİMASYON STİLLERİ */
-        .modal-backdrop {
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            display: none; 
-            z-index: 50; 
-            pointer-events: none; 
+        /* Detayları Gör/Gizle için transition helper class */
+        .max-h-transition {
+            max-height: 0;
+            transition: max-height 0.5s ease-in-out;
         }
-        .modal-backdrop.open {
-            opacity: 1;
-            display: flex; 
-            pointer-events: auto; 
+        /* Active nav link background */
+        .nav-active {
+            background-color: #137fec1a; /* primary/10 */
+            color: #137fec; /* primary */
         }
-
-        .modal-content {
-            transform: translateY(100%);
-            transition: transform 0.3s ease-in-out;
-            z-index: 60; 
+        /* Form input/select/textarea genel stilleri */
+        .form-input, .form-select, .form-textarea {
+            @apply flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg 
+            text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 
+            border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark 
+            focus:border-primary placeholder:text-slate-400 dark:placeholder:text-slate-500;
         }
-        .modal-backdrop.open .modal-content {
-            transform: translateY(0);
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "content-light": "#ffffff",
+                        "content-dark": "#182431",
+                        "text-light": "#0d141b",
+                        "text-dark": "#f6f7f8",
+                        "text-secondary-light": "#4c739a",
+                        "text-secondary-dark": "#a2b8cf",
+                        "border-light": "#cfdbe7",
+                        "border-dark": "#34485e"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
         }
-
-        /* Ayarlar menüsü için sağdan açılma animasyonu */
-        #settings-modal .modal-content {
-            transform: translateX(100%);
-        }
-        #settings-modal.open .modal-content {
-            transform: translateX(0);
-        }
-      </style>
-    <style>
-        body {
-          min-height: max(884px, 100dvh);
-        }
-      </style>
+    </script>
 </head>
-<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
-    <div class="relative flex h-auto min-h-screen w-full flex-col">
-        <header class="flex items-center p-4 pb-2 justify-between bg-background-light dark:bg-background-dark sticky top-0 z-10 border-b border-gray-200/10 dark:border-gray-800/80">
-            <div class="flex size-12 shrink-0 items-center">
-                
-            </div>
-            
-            <h1 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center"></h1>
-            
-            <div class="flex w-12 items-center justify-end">
-                <button id="open-settings-modal-btn" class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-gray-900 dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
-                    <span class="material-symbols-outlined text-2xl">more_vert</span>
-                </button>
-            </div>
-        </header>
-
-        <main class="flex-1 flex-col pb-8">
-            <div class="h-4"></div>
-            
-            <div class="flex flex-wrap gap-4 p-4">
-                <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50">
-                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">Toplam Harcama</p>
-                    <p class="text-gray-900 dark:text-white tracking-light text-2xl font-bold leading-tight" id="total-spending">₺0,00</p>
-                </div>
-                <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50">
-                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">Toplam Gelir</p>
-                    <p class="text-gray-900 dark:text-white tracking-light text-2xl font-bold leading-tight" id="total-income">₺0,00</p>
-                </div>
-            </div>
-            
-            <h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Kategori Dağılımı</h2>
-
-            <div class="px-4 py-2">
-                <div class="flex min-w-72 flex-1 flex-col gap-4 rounded-xl p-6 bg-gray-100 dark:bg-gray-800/50">
-                    <div class="flex justify-between items-center">
-                        <p class="text-gray-900 dark:text-white text-base font-bold leading-normal">Kategoriye Göre Harcama</p>
-                        <span class="material-symbols-outlined text-gray-500 dark:text-gray-400">info</span>
-                    </div>
-                    <div class="relative w-48 h-48 mx-auto">
-                        <svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36" id="donut-chart">
-                            </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">Toplam Harcama</p>
-                            <p class="text-gray-900 dark:text-white tracking-tight text-2xl font-bold leading-tight" id="chart-total-spent">₺0</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">En Çok Harcama Kategorileri</h2>
-            <div class="flex flex-col gap-3 px-4" id="top-spending-list">
-                </div>
-            
-            <h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Finansal Sağlık</h2>
-            <div class="px-4 py-2 mb-8">
-                <div class="flex flex-col gap-4 rounded-xl p-6 bg-gray-100 dark:bg-gray-800/50">
-                    <div class="flex justify-between items-center">
-                        <p class="text-gray-900 dark:text-white text-base font-bold leading-normal">Puanınız</p>
-                        <div class="flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-sm font-semibold text-green-400" id="health-status-badge">
-                            <span class="material-symbols-outlined text-base">trending_up</span>
-                            <span>İyi</span>
-                        </div>
-                    </div>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">Genel olarak <span class="font-bold text-gray-800 dark:text-gray-200" id="saved-amount">₺0,00</span> net varlığınız/borcunuz bulunmaktadır.</p>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                        <div class="bg-green-500 h-3 rounded-full" id="health-gauge" data-alt="Yeşil ilerleme çubuğu %75 dolu." style="width: 75%"></div>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <span>Çalışma Gerekli</span>
-                        <span>Mükemmel</span>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <footer class="sticky bottom-0 p-4 bg-background-light dark:bg-background-dark border-t border-gray-200/10 dark:border-gray-800/80">
-            <button id="open-expense-modal-btn" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-primary text-white shadow-lg shadow-primary/30">
-                <span class="material-symbols-outlined">add_circle</span>
-                <p class="text-base font-bold leading-normal">Yeni İşlem Ekle</p>
-            </button>
-        </footer>
-
-
-        <div id="expense-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-            <div class="modal-content w-full max-w-lg bg-gray-100 dark:bg-gray-800/95 rounded-t-xl shadow-2xl p-6" role="dialog" aria-modal="true">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="expense-modal-title">Yeni İşlem Ekle</h3>
-                    <button type="button" data-close-modal="expense-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                <form id="add-expense-form" class="space-y-4">
-                    <div class="flex justify-center gap-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg">
-                        <div class="flex items-center gap-2 flex-1">
-                            <input type="radio" id="type-expense" name="transaction-type" value="expense" checked 
-                                class="form-radio text-red-500 border-red-500 bg-gray-100 dark:bg-gray-800 focus:ring-red-500/50">
-                            <label for="type-expense" class="text-sm font-medium text-gray-900 dark:text-gray-300">Gider</label>
-                        </div>
-                        <div class="flex items-center gap-2 flex-1">
-                            <input type="radio" id="type-income" name="transaction-type" value="income" 
-                                class="form-radio text-green-500 border-green-500 bg-gray-100 dark:bg-gray-800 focus:ring-green-500/50">
-                            <label for="type-income" class="text-sm font-medium text-gray-900 dark:text-gray-300">Gelir</label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="expense-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tutar (₺)</label>
-                        <input type="number" id="expense-amount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
-                    </div>
-                    <div>
-                        <label for="expense-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
-                        <input type="text" id="expense-description" name="description" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
-                    </div>
-                    <div id="category-field">
-                        <label for="expense-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori</label>
-                        <select id="expense-category" name="category" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
-                            </select>
-                    </div>
-                    <div>
-                        <label for="expense-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tarih</label>
-                        <input type="date" id="expense-date" name="date" required value="" class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
-                    </div>
-                    
-                    <button type="submit" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-primary text-white text-base font-bold leading-normal mt-6">
-                        İşlemi Kaydet
-                    </button>
-                </form>
-            </div>
+<body class="font-display bg-background-light dark:bg-background-dark">
+    <div id="app-container" class="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden">
         </div>
 
-        <div id="category-details-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-            <div class="modal-content w-full max-w-lg bg-gray-100 dark:bg-gray-800/95 rounded-t-xl shadow-2xl p-6 max-h-[80vh] overflow-y-auto" role="dialog" aria-modal="true">
-                <div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-100 dark:bg-gray-800/95 pt-2 pb-4 border-b border-gray-200/50 dark:border-gray-700/50">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="category-details-modal-title">... Gider Detayları</h3>
-                    <button type="button" data-close-modal="category-details-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                
-                <div id="expense-details-list" class="space-y-3">
-                    </div>
-                <p id="no-expenses-message" class="text-gray-500 dark:text-gray-400 text-center py-8 hidden">Bu kategoride henüz bir harcama yok.</p>
-            </div>
-        </div>
-
-        <div id="edit-modal" class="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-            <div class="modal-content w-full max-w-lg bg-gray-100 dark:bg-gray-800/95 rounded-t-xl shadow-2xl p-6" role="dialog" aria-modal="true">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="edit-modal-title">İşlemi Düzenle</h3>
-                    <button type="button" data-close-modal="edit-modal" data-reopen-modal="category-details-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-
-                <form id="edit-expense-form" class="space-y-4">
-                    <input type="hidden" id="edit-expense-id">
-                    <input type="hidden" id="edit-transaction-type">
-                    <input type="hidden" id="edit-original-category-id">
-
-                    <div>
-                        <label for="edit-expense-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tutar (₺)</label>
-                        <input type="number" id="edit-expense-amount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
-                    </div>
-
-                    <div>
-                        <label for="edit-expense-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Açıklama</label>
-                        <input type="text" id="edit-expense-description" name="description" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-primary focus:border-primary">
-                    </div>
-
-                    <div id="edit-category-field">
-                        <label for="edit-expense-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori</label>
-                        <select id="edit-expense-category" name="category" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
-                            </select>
-                    </div>
-                    
-                    <div>
-                        <label for="edit-expense-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tarih</label>
-                        <input type="date" id="edit-expense-date" name="date" required class="w-full px-4 py-3 rounded-lg border-none bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary">
-                    </div>
-                    
-                    <button type="submit" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-primary text-white text-base font-bold leading-normal mt-6">
-                        Değişiklikleri Kaydet
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <div id="settings-modal" class="modal-backdrop fixed inset-0 z-50 justify-end items-stretch">
-            <div class="modal-content w-full max-w-sm bg-gray-100 dark:bg-gray-800/95 shadow-2xl p-6 flex flex-col" role="dialog" aria-modal="true">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Ayarlar</h3>
-                    <button type="button" data-close-modal="settings-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                
-                <div class="space-y-4 flex-1">
-                    <div class="flex justify-between items-center p-3 rounded-xl bg-gray-200 dark:bg-gray-700/50">
-                        <span class="text-gray-900 dark:text-white font-medium">Karanlık Mod</span>
-                        <input type="checkbox" id="dark-mode-toggle" class="form-switch h-6 w-11 appearance-none bg-gray-300 rounded-full checked:bg-primary transition duration-200 ease-in-out">
-                    </div>
-                </div>
-
-                <div class="mt-6 pt-4 border-t border-gray-300 dark:border-gray-700">
-                    <button id="reset-data-btn" class="w-full flex h-12 items-center justify-center gap-x-2 rounded-xl bg-red-600 text-white text-base font-bold leading-normal shadow-lg shadow-red-600/30">
-                        <span class="material-symbols-outlined">delete_forever</span>
-                        <p>Tüm Verileri Sıfırla</p>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-
-        <script>
-            // --- 1. Statik Veri Kaynağı ve Kapsamlı Veri Modeli ---
-            const CATEGORIES = [
-                { id: 'yeme', name: 'Yeme & İçme', icon: 'restaurant', color: 'blue', stroke: '#2c5282' },
-                { id: 'eglence', name: 'Eğlence', icon: 'movie', color: 'purple', stroke: '#6b46c1' },
-                { id: 'ulasim', name: 'Ulaşım', icon: 'commute', color: 'pink', stroke: '#d53f8c' },
-                { id: 'fatura', name: 'Kira & Faturalar', icon: 'receipt_long', color: 'red', stroke: '#e53e3e' },
-                { id: 'market', name: 'Market', icon: 'shopping_cart', color: 'teal', stroke: '#38b2ac' },
-                { id: 'seyahat', name: 'Seyahat', icon: 'flight', color: 'yellow', stroke: '#ecc94b' },
-                { id: 'giyim', name: 'Giyim', icon: 'styler', color: 'indigo', stroke: '#5a67d8' },
-                { id: 'diger', name: 'Diğer', icon: 'more_horiz', color: 'gray', stroke: '#a0aec0' },
+    <script>
+        // --- Uygulama Sabitleri ve Yardımcı Fonksiyonlar ---
+        const ROOT_APP_CONTAINER = document.getElementById('app-container');
+        
+        // Dinamik Kullanıcı Verisi Yönetimi
+        const getInitialUsers = () => {
+            return [
+                // Not: Şifreler hash'lenmediği için güvenlik zafiyeti vardır. Bu bir front-end mock uygulamasıdır.
+                { id: 1, name: 'Admin Kullanıcı', email: 'admin@segment.com', password: 'admin123', role: 'admin' },
+                { id: 2, name: 'Standart Kullanıcı', email: 'user@segment.com', password: 'user123', role: 'standard' }
             ];
-            
-            let nextExpenseId = 1000; 
-            let nextIncomeId = 2000;
+        };
 
-            // Önceki tüm aralıklardaki verileri tek bir büyük diziye birleştirme
-            const getInitialFullData = () => {
-                let fullData = { expenses: [], incomes: [] };
-                
-                // Demo verilerini tek bir yerde topluyoruz (önceki koddan kalan tüm demo verileri)
-                const allDemoData = [
-                    // bu-ay
-                    { id: nextExpenseId++, type: 'expense', categoryId: 'yeme', amount: 450.00, description: 'Restoran Yemeği', date: '2025-11-01' },
-                    { id: nextExpenseId++, type: 'expense', categoryId: 'yeme', amount: 530.30, description: 'Kahve ve Atıştırmalık', date: '2025-11-02' },
-                    { id: nextExpenseId++, type: 'expense', categoryId: 'eglence', amount: 612.70, description: 'Konser Bileti', date: '2025-11-03' },
-                    { id: nextExpenseId++, type: 'expense', categoryId: 'ulasim', amount: 490.15, description: 'Yakıt Dolumu', date: '2025-11-04' },
-                    { id: nextExpenseId++, type: 'expense', categoryId: 'fatura', amount: 367.63, description: 'İnternet Faturası', date: '2025-11-05' },
-                    { id: nextIncomeId++, type: 'income', amount: 4500.00, description: 'Aylık Maaş', date: '2025-11-01' },
-                    
-                    // son-3-ay (tekrar edenler hariç, yeni ID'ler atandı)
-                    { id: 10000, type: 'expense', categoryId: 'market', amount: 200.00, description: 'Kasım Market', date: '2025-11-10' },
-                    { id: 10001, type: 'expense', categoryId: 'yeme', amount: 500.00, description: 'Ekim Restoranlar', date: '2025-10-01' },
-                    { id: 10002, type: 'expense', categoryId: 'fatura', amount: 800.00, description: 'Ekim Kira', date: '2025-10-15' },
-                    { id: 10003, type: 'expense', categoryId: 'market', amount: 300.00, description: 'Ekim Market', date: '2025-10-05' },
-                    { id: 10004, type: 'expense', categoryId: 'eglence', amount: 400.00, description: 'Eylül Sinema', date: '2025-09-01' },
-                    { id: 10005, type: 'expense', categoryId: 'ulasim', amount: 250.00, description: 'Eylül Ulaşım', date: '2025-09-10' },
-                    { id: 10006, type: 'expense', categoryId: 'giyim', amount: 600.00, description: 'Eylül Alışveriş', date: '2025-09-20' },
-                    { id: 20000, type: 'income', amount: 4500.00, description: 'Ekim Maaş', date: '2025-10-01' },
-                    { id: 20001, type: 'income', amount: 4500.00, description: 'Eylül Maaş', date: '2025-09-01' },
-                    
-                    // bu-yil (tekrar edenler hariç, yeni ID'ler atandı)
-                    { id: 30000, type: 'expense', categoryId: 'seyahat', amount: 5000.00, description: 'Yaz Tatili', date: '2025-07-10' },
-                    { id: 30001, type: 'expense', categoryId: 'fatura', amount: 1200.00, description: 'Ocak Kira', date: '2025-01-01' },
-                    { id: 30002, type: 'expense', categoryId: 'fatura', amount: 1200.00, description: 'Şubat Kira', date: '2025-02-01' },
-                    { id: 30003, type: 'expense', categoryId: 'giyim', amount: 800.00, description: 'Kışlık Alışveriş', date: '2025-01-20' },
-                    { id: 30004, type: 'expense', categoryId: 'diger', amount: 1000.00, description: 'Hobi Malzemeleri', date: '2025-04-15' },
-                    { id: 30005, type: 'expense', categoryId: 'yeme', amount: 350.00, description: 'Haziran Yemeği', date: '2025-06-05' },
-                    { id: 40000, type: 'income', amount: 4500.00, description: 'Ocak Maaş', date: '2025-01-01' },
-                    { id: 40001, type: 'income', amount: 4500.00, description: 'Şubat Maaş', date: '2025-02-01' },
-                    { id: 40002, type: 'income', amount: 4500.00, description: 'Mart Maaş', date: '2025-03-01' },
-                    { id: 40003, type: 'income', amount: 4500.00, description: 'Nisan Maaş', date: '2025-04-01' },
-                    { id: 40004, type: 'income', amount: 4500.00, description: 'Mayıs Maaş', date: '2025-05-01' },
-                    { id: 40005, type: 'income', amount: 4500.00, description: 'Haziran Maaş', date: '2025-06-01' },
-                    { id: 40006, type: 'income', amount: 4500.00, description: 'Temmuz Maaş', date: '2025-07-01' },
-                    { id: 40007, type: 'income', amount: 4500.00, description: 'Ağustos Maaş', date: '2025-08-01' },
-                ];
-                
-                allDemoData.forEach(item => {
-                    if (item.type === 'expense') {
-                        fullData.expenses.push(item);
-                    } else {
-                        fullData.incomes.push(item);
-                    }
-                });
-
-                return fullData;
+        const getAllUsers = () => {
+            let users = JSON.parse(localStorage.getItem('users'));
+            if (!users || users.length === 0) {
+                users = getInitialUsers();
+                localStorage.setItem('users', JSON.stringify(users));
             }
+            return users;
+        };
 
-            // Artık tek bir veri kaynağımız var
-            let financialData = getInitialFullData();
-
-            let currentCategory = null; 
-            
-            // --- 2. DOM Öğelerini Seçme ---
-            const totalSpendingEl = document.getElementById('total-spending');
-            const totalIncomeEl = document.getElementById('total-income');
-            const chartTotalSpentEl = document.getElementById('chart-total-spent');
-            const topSpendingListEl = document.getElementById('top-spending-list');
-            const savedAmountEl = document.getElementById('saved-amount');
-            const healthGaugeEl = document.getElementById('health-gauge');
-            const healthStatusBadgeEl = document.getElementById('health-status-badge');
-            const donutChartEl = document.getElementById('donut-chart');
-            const settingsModal = document.getElementById('settings-modal'); 
-            const resetDataBtn = document.getElementById('reset-data-btn');
-            const darkModeToggle = document.getElementById('dark-mode-toggle');
-
-            // Modal Elementleri (Kalanlar)
-            const expenseModal = document.getElementById('expense-modal');
-            const addExpenseForm = document.getElementById('add-expense-form');
-            const expenseCategorySelect = document.getElementById('expense-category');
-            const expenseDateInput = document.getElementById('expense-date'); 
-            const transactionTypeRadios = document.querySelectorAll('input[name="transaction-type"]');
-            const categoryField = document.getElementById('category-field');
-            const categoryDetailsModal = document.getElementById('category-details-modal');
-            const categoryDetailsModalTitle = document.getElementById('category-details-modal-title');
-            const expenseDetailsList = document.getElementById('expense-details-list');
-            const noExpensesMessage = document.getElementById('no-expenses-message');
-            const editModal = document.getElementById('edit-modal');
-            const editExpenseForm = document.getElementById('edit-expense-form');
-            const editModalTitle = document.getElementById('edit-modal-title');
-            const editExpenseId = document.getElementById('edit-expense-id');
-            const editTransactionType = document.getElementById('edit-transaction-type'); 
-            const editOriginalCategoryId = document.getElementById('edit-original-category-id');
-            const editExpenseAmount = document.getElementById('edit-expense-amount');
-            const editExpenseDescription = document.getElementById('edit-expense-description');
-            const editExpenseCategory = document.getElementById('edit-expense-category');
-            const editExpenseDate = document.getElementById('edit-expense-date'); 
-            const editCategoryField = document.getElementById('edit-category-field');
-
-
-            // --- 3. Yardımcı Fonksiyonlar ---
-            
-            function formatCurrency(amount, withSymbol = true) {
-                const formatted = (Math.round(amount * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                return withSymbol ? `₺${formatted}` : formatted;
+        const getCurrentUser = () => JSON.parse(localStorage.getItem('currentUser'));
+        const isAdmin = () => getCurrentUser()?.role === 'admin';
+        
+        const getVehicles = () => JSON.parse(localStorage.getItem('vehicles') || '[]');
+        const getDrivers = () => JSON.parse(localStorage.getItem('drivers') || '[]');
+        
+        const DONUT_COLORS = [
+            '#137fec', // primary
+            '#3b82f6', // sky-500
+            '#10b981', // emerald-500
+            '#f59e0b', // amber-500
+            '#ef4444' // red-500
+        ];
+        
+        const getTypeColor = (type) => {
+            switch (type) {
+                case 'Kamyon':
+                    return { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-800 dark:text-blue-300' };
+                case 'Otomobil':
+                    return { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-800 dark:text-green-300' };
+                case 'Tır':
+                    return { bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-800 dark:text-yellow-300' };
+                case 'Kamyonet':
+                    return { bg: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-800 dark:text-purple-300' };
+                default:
+                    return { bg: 'bg-slate-100 dark:bg-slate-700/50', text: 'text-slate-800 dark:text-slate-300' };
             }
+        };
 
-            function getCategoryById(categoryId) {
-                return CATEGORIES.find(c => c.id === categoryId);
-            }
+        const formatDate = (dateString) => {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date)) return '-';
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
             
-            /**
-             * Belirli bir işlemi (Gider veya Gelir) bulur.
-             */
-            function findTransaction(transactionId) {
-                const id = parseInt(transactionId); 
-                let transaction = financialData.expenses.find(t => t.id === id);
-                if (transaction) return transaction;
-                
-                transaction = financialData.incomes.find(t => t.id === id);
-                return transaction || null;
-            }
-
-            function updateHealthBadge(score, statusText) {
-                 let bgColor = '';
-                let textColor = '';
-                let icon = '';
-
-                if (score >= 80) {
-                    bgColor = 'bg-green-500/20';
-                    textColor = 'text-green-400';
-                    icon = 'trending_up';
-                } else if (score >= 60) {
-                    bgColor = 'bg-yellow-500/20';
-                    textColor = 'text-yellow-400';
-                    icon = 'trending_flat';
-                } else {
-                    bgColor = 'bg-red-500/20';
-                    textColor = 'text-red-400';
-                    icon = 'trending_down';
+            return `${day}.${month}.${year}`;
+        };
+        
+        const getDueDate = (dateString) => {
+             if (!dateString) return null;
+             const date = new Date(dateString);
+             date.setHours(0, 0, 0, 0); 
+             const today = new Date();
+             today.setHours(0, 0, 0, 0); 
+             
+             const oneDay = 1000 * 60 * 60 * 24;
+             const diffTime = date.getTime() - today.getTime();
+             const diffDays = Math.ceil(diffTime / oneDay);
+             return diffDays;
+        };
+        
+        // --- Import/Export Logic ---
+        
+        const exportDataToJSON = () => {
+            const vehicles = getVehicles();
+            const drivers = getDrivers();
+            const users = getAllUsers(); // Kullanıcı verilerini de dahil et
+            
+            const data = {
+                vehicles: vehicles,
+                drivers: drivers,
+                users: users,
+                metadata: {
+                    exportedAt: new Date().toISOString(),
+                    version: '1.1 - User Included'
                 }
+            };
 
-                healthStatusBadgeEl.className = 'flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold';
-                healthStatusBadgeEl.classList.add(bgColor, textColor);
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `arac_sofor_verileri_${new Date().toISOString().substring(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('Veriler başarıyla JSON dosyasına dışa aktarıldı!');
+        };
+        
+        const handleFileImport = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (importedData.vehicles && Array.isArray(importedData.vehicles) &&
+                        importedData.drivers && Array.isArray(importedData.drivers)) {
+                        
+                        localStorage.setItem('vehicles', JSON.stringify(importedData.vehicles));
+                        localStorage.setItem('drivers', JSON.stringify(importedData.drivers));
+                        
+                        // Kullanıcı verisi varsa onu da aktar
+                        if (importedData.users && Array.isArray(importedData.users)) {
+                             localStorage.setItem('users', JSON.stringify(importedData.users));
+                        }
+                        
+                        alert('Veriler başarıyla içeri aktarıldı. Panel yenileniyor...');
+                        
+                        // İçeriği yenilemek için paneli tekrar yükle
+                        renderView('panel');
+
+                    } else {
+                        alert('Hata: Yüklenen dosya geçerli bir veri yapısı içermiyor. (vehicles ve drivers anahtarları bulunamadı.)');
+                    }
+                } catch (error) {
+                    alert('Hata: Yüklenen dosya geçerli bir JSON formatında değil.');
+                    console.error('Import Error:', error);
+                }
+            };
+            
+            reader.readAsText(file);
+        };
+        
+        window.exportDataToJSON = exportDataToJSON;
+        window.handleFileImport = handleFileImport; 
+
+        // --- View HTML Şablonları ---
+
+        const LOGIN_VIEW_HTML = `
+            <div class="layout-container flex h-full grow flex-col">
+                <div class="flex flex-1 items-stretch">
+                    <div class="relative hidden w-1/2 flex-col items-center justify-center bg-gray-900 lg:flex">
+                        <img class="absolute inset-0 h-full w-full object-cover opacity-30" data-alt="A modern blue sports car" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVDXu6JcZoAFWt3SnxX8Q7P0gxLQ87a3dJJ5KTVCMJbY5MGHqiwYs60_hMZfB2iiqwLaaQsdL_XXqOEeCzJ90HbnV0neybrpwASRA9BWEhU-Db6iG0rJCOmc9UU09y9kYQly25Gn7b1bdws0woz0VhPG_-z9s32uyaU-jMm85a0N6peapW_JHYOOUXfzJpPgutkbN3MBFrjVYWdcHiVp8etdNnPFTJ6kdUTSNe7VUnG7ig4CsbGGts7St5ZGKWQcf8FByAy6yfZs_f"/>
+                        <div class="relative z-10 flex flex-col items-start p-16 text-white">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-4xl text-primary">directions_car</span>
+                                <h1 class="text-3xl font-bold">Araç Bilgi Sistemi</h1>
+                            </div>
+                            <p class="mt-4 max-w-md text-lg text-gray-300">Filo yönetimi ve araç takibi için hepsi bir arada çözümünüz.</p>
+                        </div>
+                    </div>
+                    <main class="flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+                        <div class="w-full max-w-sm">
+                            <div class="flex flex-col gap-3 text-left">
+                                <p class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em]">Hoş Geldiniz</p>
+                                <p class="text-text-secondary-light dark:text-text-secondary-dark text-base font-normal leading-normal">Giriş yapmak için bilgilerinizi girin</p>
+                            </div>
+                            <form id="login-form" class="mt-8 flex flex-col gap-6">
+                                <label class="flex flex-col flex-1">
+                                    <p class="text-text-light dark:text-text-dark text-base font-medium leading-normal pb-2">Kullanıcı Adı veya E-posta</p>
+                                    <input id="email" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-content-light dark:bg-content-dark focus:border-primary h-14 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark p-[15px] text-base font-normal leading-normal" placeholder="kullaniciadiniz@example.com" type="email" value=""/>
+                                </label>
+                                <label class="flex flex-col flex-1">
+                                    <p class="text-text-light dark:text-text-dark text-base font-medium leading-normal pb-2">Şifre</p>
+                                    <div class="relative flex w-full flex-1 items-stretch">
+                                        <input id="password" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-content-light dark:bg-content-dark focus:border-primary h-14 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark p-[15px] pr-12 text-base font-normal leading-normal" placeholder="Şifrenizi girin" type="password" value=""/>
+                                        <button id="toggle-password" class="absolute inset-y-0 right-0 flex items-center justify-center pr-4 text-text-secondary-light dark:text-text-secondary-dark" type="button">
+                                            <span class="material-symbols-outlined">visibility_off</span>
+                                        </button>
+                                    </div>
+                                </label>
+                                <p id="error-message" class="text-red-500 text-sm font-medium leading-normal hidden">Hatalı kullanıcı adı veya şifre.</p>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <input class="h-5 w-5 rounded border-border-light dark:border-border-dark border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:border-border-light dark:focus:border-border-dark focus:outline-none" id="remember-me" style="--checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(246,247,248)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e');" type="checkbox"/>
+                                        <label class="text-text-light dark:text-text-dark text-sm font-normal leading-normal select-none" for="remember-me">Beni Hatırla</label>
+                                    </div>
+                                    <button class="text-sm font-medium leading-normal text-primary hover:underline" type="button">Şifremi Unuttum?</button>
+                                </div>
+                                <button class="flex min-w-[84px] max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 flex-1 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" type="submit">
+                                    <span class="truncate">Giriş Yap</span>
+                                </button>
+                            </form>
+                            <div class="mt-6 text-center">
+                                <p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                                    Hesabınız yok mu? <a class="font-bold text-primary hover:underline" href="#">Kayıt Olun</a>
+                                </p>
+                            </div>
+                            <footer class="mt-16 text-center">
+                                <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">© 2024 Araç Bilgi Sistemi. Tüm hakları saklıdır.</p>
+                            </footer>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        `;
+
+        const PANEL_VIEW_SHELL_HTML = (user) => `
+            <div class="flex flex-1">
+                <div class="flex flex-col w-64 bg-white dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800 p-4">
+                    <div class="flex flex-col gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD9dWGXJ2Bl_TZ7ONoxHl6w-lvNQ2FHBOtCszIbeQm4wBLN1dK40BPeSkdjBr9M-cqYt5eHOnzLJx3tq-ZY9cZB3AyXW-YW1z7gig_xq9eYcvU8pph2H8AyOIYQywvkEYVi7AdoGu9z_qocRtlFZGDivg43rB332Ty5HYG3vhGW5TgM70j9UxL5zHf2aXT70WHACbWh4TJSVwUhyRURBSPdrE4PZFxR4kxz4D_cY0DPnvPcFXa2svxZ-1ZFTmBxDPunLIknMAW2i0AL");'></div>
+                            <div class="flex flex-col">
+                                <h1 id="user-name" class="text-slate-900 dark:text-white text-base font-medium leading-normal">${user.name}</h1>
+                                <p id="user-email" class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">${user.email}</p>
+                            </div>
+                        </div>
+                        <div id="nav-links" class="flex flex-col gap-2 mt-4">
+                            <a class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#" data-section="dashboard">
+                                <span class="material-symbols-outlined text-slate-900 dark:text-white">dashboard</span>
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Kontrol Paneli</p>
+                            </a>
+                            <a class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#" data-section="vehicle">
+                                <span class="material-symbols-outlined text-slate-900 dark:text-white">local_shipping</span>
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Araç Yönetimi</p>
+                            </a>
+                            <a class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#" data-section="drivers">
+                                <span class="material-symbols-outlined text-slate-900 dark:text-white">group</span>
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Sürücüler</p>
+                            </a>
+                            <a class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#" data-section="reports">
+                                <span class="material-symbols-outlined text-slate-900 dark:text-white">bar_chart</span>
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Raporlar</p>
+                            </a>
+                            <a class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#" data-section="settings">
+                                <span class="material-symbols-outlined text-slate-900 dark:text-white">settings</span>
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Ayarlar</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1 mt-auto">
+                        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#" onclick="alert('Yardım özelliği mevcut değildir.'); return false;">
+                            <span class="material-symbols-outlined text-slate-900 dark:text-white">help</span>
+                            <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Yardım</p>
+                        </a>
+                        <a id="logout-button" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300" href="#">
+                            <span class="material-symbols-outlined text-slate-900 dark:text-white">logout</span>
+                            <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Çıkış Yap</p>
+                        </a>
+                    </div>
+                </div>
+                <main id="main-content" class="flex-1 p-8 overflow-y-auto">
+                    </main>
+            </div>
+        `;
+
+        const VEHICLE_MANAGEMENT_CONTENT_HTML = (isAdm) => `
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+                    <div class="flex flex-col gap-2">
+                        <h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Araç Yönetim Paneli</h1>
+                        <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Sistemdeki araçları yönetin, yeni araç ekleyin veya mevcut bilgileri güncelleyin.</p>
+                    </div>
+                    <div id="admin-export-import-buttons" class="flex items-center gap-3 ${isAdm ? '' : 'hidden'}">
+                        <input type="file" id="json-import-file" accept=".json" class="hidden" onchange="handleFileImport(event)">
+                        
+                        <button id="import-button" class="px-4 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-2" onclick="document.getElementById('json-import-file').click();">
+                            <span class="material-symbols-outlined text-base">upload_file</span> JSON Yükle 
+                        </button>
+                        <button class="px-4 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-2" onclick="exportDataToJSON()">
+                            <span class="material-symbols-outlined text-base">download</span> JSON Dışa Aktar 
+                        </button>
+                    </div>
+                </div>
                 
-                healthStatusBadgeEl.innerHTML = `
-                    <span class="material-symbols-outlined text-base">${icon}</span>
-                    <span>${statusText}</span>
+                <div id="vehicle-form-container" class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-6 ${isAdm ? '' : 'hidden'}">
+                    <h2 id="form-title" class="text-slate-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] mb-6">Yeni Araç Ekle</h2>
+                    <form id="vehicle-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <input type="hidden" id="vehicle-id" value=""/>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Plaka</p>
+                            <input id="plate" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" placeholder="34 ABC 123" required/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Şoför</p>
+                            <input id="driver" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" placeholder="Şoför Adı Soyadı" required/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Tip</p>
+                            <select id="type" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 p-3 text-base font-normal leading-normal" required>
+                                <option>Kamyon</option>
+                                <option>Otomobil</option>
+                                <option>Tır</option>
+                                <option>Kamyonet</option>
+                                <option>Panelvan</option>
+                            </select>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Marka</p>
+                            <input id="brand" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" placeholder="Araç Markası" required/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Ruhsat Bitiş Tarihi</p>
+                            <input id="license-due" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" type="date"/>
+                        </label><label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Poliçe Bitiş Tarihi</p>
+                            <input id="policy-due" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" type="date"/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Muayene Bitiş Tarihi</p>
+                            <input id="inspection-due" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" type="date"/>
+                        </label>
+                        <label class="flex flex-col col-span-1 md:col-span-2 lg:col-span-2">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Not</p>
+                            <textarea id="note" class="form-textarea flex w-full min-w-0 flex-1 resize-y overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal leading-normal" placeholder="Araç ile ilgili ek notlar..." rows="3"></textarea>
+                        </label>
+                        <div class="flex items-center gap-4 col-span-1 md:col-span-2 lg:col-span-3 justify-end">
+                            <button class="px-5 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" type="reset">Temizle</button>
+                            <button id="save-button" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2" type="submit">
+                                <span class="material-symbols-outlined text-base">save</span> Kaydet 
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mt-8">
+                    <div class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <div class="flex flex-wrap gap-4 justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Kayıtlı Araçlar</h3>
+                            <div class="relative w-full max-w-sm">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">search</span>
+                                <input id="search-input" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 pl-10 pr-4 text-base font-normal leading-normal" placeholder="Plaka, şoför veya tip ara..."/>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div id="vehicle-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const DRIVERS_MANAGEMENT_CONTENT_HTML = (isAdm) => `
+             <div class="layout-content-container flex flex-col w-full max-w-7xl mx-auto flex-1 gap-6">
+                <div class="flex flex-wrap justify-between gap-4 items-center mb-4">
+                    <div class="flex min-w-72 flex-col gap-2">
+                        <p class="text-slate-900 dark:text-slate-50 text-4xl font-black leading-tight tracking-[-0.033em]">Şoför Yönetimi</p>
+                        <p class="text-slate-600 dark:text-slate-400 text-base font-normal leading-normal">Sistemde kayıtlı tüm şoförleri görüntüleyin ve yönetin.</p>
+                    </div>
+                    <button id="add-driver-button" class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2 ${isAdm ? '' : 'hidden'}">
+                        <span class="material-symbols-outlined text-base">add</span>
+                        <span class="truncate">Yeni Şoför Ekle</span>
+                    </button>
+                </div>
+                
+                <div id="driver-form-container" class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-6 mb-6 ${isAdm ? 'hidden' : 'hidden'}">
+                    <h2 id="driver-form-title" class="text-slate-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] mb-6">Yeni Şoför Ekle</h2>
+                    <form id="driver-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <input type="hidden" id="driver-id" value=""/>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Ad Soyad</p>
+                            <input id="driver-name" class="form-input h-12 p-3 text-base" placeholder="Ad Soyad" required/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Telefon</p>
+                            <input id="driver-phone" class="form-input h-12 p-3 text-base" placeholder="05XX XXX XX XX" type="tel" required/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">T.C. Kimlik No (Opsiyonel)</p>
+                            <input id="driver-tc-no" class="form-input h-12 p-3 text-base" placeholder="11 haneli T.C. Kimlik Numarası"/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Ehliyet No</p>
+                            <input id="driver-license-no" class="form-input h-12 p-3 text-base" placeholder="Ehliyet No" required/>
+                        </label>
+                        <label class="flex flex-col">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Durum</p>
+                            <select id="driver-status" class="form-select h-12 p-3 text-base" required>
+                                <option>Aktif</option>
+                                <option>Pasif</option>
+                            </select>
+                        </label>
+                        <label class="flex flex-col col-span-1 md:col-span-2 lg:col-span-3">
+                            <p class="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Not</p>
+                            <textarea id="driver-note" class="form-textarea p-3 text-base" placeholder="Sürücü ile ilgili ek notlar..." rows="2"></textarea>
+                        </label>
+                        <div class="flex items-center gap-4 col-span-1 md:col-span-2 lg:col-span-3 justify-end">
+                            <button id="cancel-driver-button" class="px-5 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" type="button">İptal</button>
+                            <button id="save-driver-button" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2" type="submit">
+                                <span class="material-symbols-outlined text-base">save</span> Kaydet 
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <label class="flex flex-col min-w-40 h-12 w-full flex-1">
+                        <div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50">
+                            <div class="text-slate-500 dark:text-slate-400 flex items-center justify-center pl-4 rounded-l-lg border-r-0">
+                                <span class="material-symbols-outlined">search</span>
+                            </div>
+                            <input id="driver-search-input" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-slate-50 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-none bg-transparent h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 pl-2 text-base font-normal leading-normal" placeholder="Şoför adı, soyadı veya T.C. kimlik numarasına göre ara..." value=""/>
+                        </div>
+                    </label>
+                    <div class="flex gap-3 p-1 items-center">
+                        <div data-filter="Tümü" class="driver-filter-chip flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary/20 dark:bg-primary/30 px-4">
+                            <p class="text-primary dark:text-white text-sm font-medium leading-normal">Tümü</p>
+                        </div>
+                        <div data-filter="Aktif" class="driver-filter-chip flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 px-4">
+                            <p class="text-slate-600 dark:text-slate-300 text-sm font-medium leading-normal">Aktif</p>
+                        </div>
+                        <div data-filter="Pasif" class="driver-filter-chip flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 px-4">
+                            <p class="text-slate-600 dark:text-slate-300 text-sm font-medium leading-normal">Pasif</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-4 py-3 @container">
+                    <div class="flex overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 dark:bg-slate-900">
+                                <tr class="text-slate-600 dark:text-slate-400">
+                                    <th class="px-6 py-4 text-sm font-medium">Ad Soyad</th>
+                                    <th class="px-6 py-4 text-sm font-medium">Telefon</th>
+                                    <th class="px-6 py-4 text-sm font-medium">Atanan Araçlar</th>
+                                    <th class="px-6 py-4 text-sm font-medium">Durum</th>
+                                    <th class="px-6 py-4 text-sm font-medium text-right">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="driver-list-body" class="divide-y divide-slate-200 dark:divide-slate-800">
+                                </tbody>
+                        </table>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 px-4 py-3 sm:px-6 rounded-b-xl">
+                        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-slate-700 dark:text-slate-400">
+                                    <span id="pagination-info" class="font-medium">5</span> sonuç gösteriliyor
+                                </p>
+                            </div>
+                            <div>
+                                <nav aria-label="Pagination" class="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                                    <a class="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 dark:text-slate-500 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 focus:z-20 focus:outline-offset-0" href="#">
+                                        <span class="material-symbols-outlined !text-xl">chevron_left</span>
+                                    </a>
+                                    <a aria-current="page" class="relative z-10 inline-flex items-center bg-primary px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#">1</a>
+                                    <a class="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 dark:text-slate-500 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 focus:z-20 focus:outline-offset-0" href="#">
+                                        <span class="material-symbols-outlined !text-xl">chevron_right</span>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const REPORTS_CONTENT_HTML = () => `
+            <div class="mx-auto max-w-7xl">
+                <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
+                    <div class="flex flex-col gap-2">
+                        <h1 class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">Raporlama Paneli</h1>
+                        <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Araç verilerine dayalı detaylı raporlar ve istatistikler.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-lg">person</span>
+                            <p class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal">Tüm Şoförler</p>
+                            <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-lg">expand_more</span>
+                        </button>
+                        <button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-lg">local_shipping</span>
+                            <p class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal">Tüm Araç Tipleri</p>
+                            <span class="material-symbols-outlined text-slate-500 dark:text-slate-400 text-lg">expand_more</span>
+                        </button>
+                    </div>
+                </header>
+                
+                <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p class="text-slate-600 dark:text-slate-400 text-sm font-medium leading-normal">Toplam Araç Sayısı</p>
+                        <p id="stat-total-vehicles" class="text-slate-900 dark:text-white text-3xl font-bold leading-tight">0</p>
+                    </div>
+                    <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p class="text-slate-600 dark:text-slate-400 text-sm font-medium leading-normal">Ort. Ruhsat Bitiş Süresi</p>
+                        <p id="stat-avg-license" class="text-slate-900 dark:text-white text-3xl font-bold leading-tight">-</p>
+                    </div>
+                    <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p class="text-slate-600 dark:text-slate-400 text-sm font-medium leading-normal">Ort. Poliçe Bitiş Süresi</p>
+                        <p id="stat-avg-policy" class="text-slate-900 dark:text-white text-3xl font-bold leading-tight">-</p>
+                    </div>
+                    <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <p class="text-slate-600 dark:text-slate-400 text-sm font-medium leading-normal">Ort. Muayene Bitiş Süresi</p>
+                        <p id="stat-avg-inspection" class="text-slate-900 dark:text-white text-3xl font-bold leading-tight">-</p>
+                    </div>
+                </section>
+                
+                <section class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+                    <div class="lg:col-span-2 flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-slate-900">
+                        <h3 class="text-slate-800 dark:text-slate-200 text-base font-semibold leading-normal">Araç Tipine Göre Dağılım</h3>
+                        <div class="flex justify-center items-center my-4">
+                            <div class="relative w-48 h-48">
+                                <svg class="w-full h-full" viewBox="0 0 36 36">
+                                    <path class="stroke-slate-200 dark:stroke-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+                                    <g id="donut-chart-paths"></g>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="donut-total-count" class="text-3xl font-bold text-slate-900 dark:text-white">0</span>
+                                    <span class="text-sm text-slate-500 dark:text-slate-400">Araç</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="donut-legend" class="flex flex-col gap-3">
+                            </div>
+                    </div>
+                    
+                    <div class="lg:col-span-3 flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-6 bg-white dark:bg-slate-900">
+                        <h3 class="text-slate-800 dark:text-slate-200 text-base font-semibold leading-normal">Şoföre Göre Araç Sayısı (İlk 5)</h3>
+                        <div id="bar-chart-container" class="grid min-h-[280px] grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-center text-sm text-slate-500 dark:text-slate-400">
+                            <span class="text-right">10</span> <div class="w-full border-t border-dashed border-slate-200 dark:border-slate-800"></div>
+                            <span class="text-right">8</span> <div class="w-full border-t border-dashed border-slate-200 dark:border-slate-800"></div>
+                            <span class="text-right">6</span> <div class="w-full border-t border-dashed border-slate-200 dark:border-slate-800"></div>
+                            <span class="text-right">4</span> <div class="w-full border-t border-dashed border-slate-200 dark:border-slate-800"></div>
+                            <span class="text-right">2</span> <div class="w-full border-t border-dashed border-slate-200 dark:border-slate-800"></div>
+                            <span class="text-right">0</span> <div class="w-full border-t border-solid border-slate-300 dark:border-slate-700"></div>
+                            <div></div>
+                            <div id="bar-chart-bars" class="grid grid-cols-5 gap-4 h-full items-end pt-2">
+                                </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section>
+                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <div class="p-6">
+                            <h3 class="text-slate-800 dark:text-slate-200 text-base font-semibold leading-normal">Poliçesi / Muayenesi / Ruhsatı 30 Gün İçinde Bitecek Araçlar</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Acil dikkat gerektiren araçların listesi.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800/50">
+                                    <tr>
+                                        <th class="px-6 py-3 font-medium" scope="col">Araç Plakası</th>
+                                        <th class="px-6 py-3 font-medium" scope="col">Şoför</th>
+                                        <th class="px-6 py-3 font-medium" scope="col">Belge Türü</th>
+                                        <th class="px-6 py-3 font-medium" scope="col">Bitiş Tarihi</th>
+                                        <th class="px-6 py-3 font-medium text-right" scope="col">Kalan Gün</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reports-table-body">
+                                    </tbody>
+                            </table>
+                        </div>
+                        <div id="no-reports-message" class="p-6 hidden text-center text-slate-500 dark:text-slate-400">
+                            Tebrikler! Önümüzdeki 30 gün içinde vadesi dolacak veya geçmiş bir önemli tarih bulunmamaktadır.
+                        </div>
+                    </div>
+                </section>
+            </div>
+        `;
+        
+        const getDangerZoneHTML = (isAdmin) => `
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl border ${isAdmin ? 'border-red-500/50 dark:border-red-500/30' : 'border-slate-200 dark:border-slate-800'} ${isAdmin ? '' : 'hidden'}">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-red-700 dark:text-red-500">Tehlikeli Bölge</h3>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Bu eylemler kalıcıdır ve geri alınamaz. Lütfen devam etmeden önce dikkatli olun.</p>
+                </div>
+                <div class="border-t border-red-500/50 dark:border-red-500/30 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <p class="font-medium text-slate-900 dark:text-white">Tüm Verileri Sil</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Tüm araç, şoför ve kullanıcı verilerini kalıcı olarak siler.</p>
+                    </div>
+                    <button onclick="if(confirm('UYARI: Tüm verileri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) { localStorage.clear(); localStorage.setItem('lastSection', 'login'); renderView('login'); }" class="flex min-w-[120px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-red-600 text-white text-sm font-medium leading-normal hover:bg-red-700">
+                        <span class="truncate">Tüm Verileri Sil</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        const SETTINGS_CONTENT_HTML = (isAdmin) => `
+            <div class="layout-content-container flex flex-col w-full max-w-7xl mx-auto flex-1 gap-6">
+                <header class="flex flex-col gap-2 mb-6">
+                    <h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Ayarlar</h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Kullanıcı yönetimi ve genel uygulama ayarları.</p>
+                </header>
+
+                <section id="user-management-section" class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 ${isAdmin ? '' : 'hidden'}">
+                    <div class="p-6 border-b border-slate-200 dark:border-slate-800">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-slate-900 dark:text-white text-[22px] font-bold leading-tight">Kullanıcı Yönetimi</h2>
+                            <button id="add-user-button" class="flex items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+                                <span class="material-symbols-outlined text-base">person_add</span>
+                                <span class="truncate">Yeni Kullanıcı Ekle</span>
+                            </button>
+                        </div>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Sisteme erişebilecek kullanıcıları yönetin.</p>
+                    </div>
+
+                    <div id="user-form-container" class="p-6 border-b border-slate-200 dark:border-border-dark hidden">
+                        <h3 id="user-form-title" class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Yeni Kullanıcı Ekle</h3>
+                        <form id="user-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="hidden" id="user-id" value=""/>
+                            <label class="flex flex-col">
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal pb-1">Ad Soyad</p>
+                                <input id="user-name" class="form-input h-10 p-2 text-sm" placeholder="Ad Soyad" required/>
+                            </label>
+                            <label class="flex flex-col">
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal pb-1">E-posta</p>
+                                <input id="user-email" class="form-input h-10 p-2 text-sm" placeholder="e-posta@sirket.com" type="email" required/>
+                            </label>
+                            <label class="flex flex-col">
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal pb-1">Şifre</p>
+                                <input id="user-password" class="form-input h-10 p-2 text-sm" placeholder="Şifre" type="password" required/>
+                            </label>
+                            <label class="flex flex-col">
+                                <p class="text-slate-900 dark:text-white text-sm font-medium leading-normal pb-1">Yetki</p>
+                                <select id="user-role" class="form-select h-10 p-2 text-sm" required>
+                                    <option value="admin">Admin</option>
+                                    <option value="standard">Standart Kullanıcı</option>
+                                </select>
+                            </label>
+                            <div class="flex items-center gap-4 col-span-1 md:col-span-2 justify-end pt-2">
+                                <button id="cancel-user-button" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" type="button">İptal</button>
+                                <button id="save-user-button" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors" type="submit">Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 dark:bg-slate-800">
+                                <tr class="text-slate-600 dark:text-slate-400">
+                                    <th class="px-6 py-3 text-sm font-medium">Ad Soyad</th>
+                                    <th class="px-6 py-3 text-sm font-medium">E-posta</th>
+                                    <th class="px-6 py-3 text-sm font-medium">Yetki</th>
+                                    <th class="px-6 py-3 text-sm font-medium text-right">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-list-body" class="divide-y divide-slate-200 dark:divide-slate-800">
+                                </tbody>
+                        </table>
+                        <div id="no-users-message" class="hidden p-6 text-center text-slate-500 dark:text-slate-400">
+                            Kayıtlı kullanıcı bulunmamaktadır.
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div class="p-6">
+                        <h2 class="text-slate-900 dark:text-white text-lg font-bold">Güvenlik Ayarları</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Hesabınızın şifresini güncelleyin.</p>
+                        <div class="mt-4">
+                            <p class="text-sm text-slate-700 dark:text-slate-300">Bu özellik henüz aktif değildir. Lütfen şifre değişikliği için yöneticinizle iletişime geçin.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                ${getDangerZoneHTML(isAdmin)}
+            </div>
+        `;
+
+
+        // --- View Yönetimi (Routing) ---
+        const renderView = (viewName) => {
+            ROOT_APP_CONTAINER.innerHTML = ''; 
+            
+            if (viewName === 'login') {
+                ROOT_APP_CONTAINER.insertAdjacentHTML('afterbegin', LOGIN_VIEW_HTML);
+                initLoginListeners();
+            } else if (viewName === 'panel') {
+                const user = getCurrentUser();
+                if (!user) {
+                    renderView('login');
+                    return;
+                }
+                ROOT_APP_CONTAINER.insertAdjacentHTML('afterbegin', PANEL_VIEW_SHELL_HTML(user));
+                initPanelShellListeners();
+                const currentSection = localStorage.getItem('lastSection') || 'vehicle';
+                switchPanelContent(currentSection); 
+            }
+        };
+
+        const switchPanelContent = (sectionName) => {
+            const mainContent = document.getElementById('main-content');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            if (!mainContent) return;
+            
+            localStorage.setItem('lastSection', sectionName);
+
+            navLinks.forEach(link => {
+                link.classList.remove('nav-active', 'bg-primary/10', 'text-primary');
+                link.classList.add('hover:bg-slate-100', 'dark:hover:bg-slate-800', 'text-slate-700', 'dark:text-slate-300');
+                if (link.dataset.section === sectionName) {
+                    link.classList.add('nav-active', 'bg-primary/10', 'text-primary');
+                    link.classList.remove('hover:bg-slate-100', 'dark:hover:bg-slate-800', 'text-slate-700', 'dark:text-slate-300');
+                }
+            });
+
+            mainContent.innerHTML = '';
+
+            if (sectionName === 'vehicle') {
+                mainContent.insertAdjacentHTML('afterbegin', VEHICLE_MANAGEMENT_CONTENT_HTML(isAdmin()));
+                initVehicleManagementListeners();
+            } else if (sectionName === 'reports') {
+                mainContent.insertAdjacentHTML('afterbegin', REPORTS_CONTENT_HTML());
+                initReportsListeners();
+            } else if (sectionName === 'drivers') {
+                mainContent.insertAdjacentHTML('afterbegin', DRIVERS_MANAGEMENT_CONTENT_HTML(isAdmin()));
+                initDriversManagementListeners();
+            } else if (sectionName === 'settings') {
+                mainContent.insertAdjacentHTML('afterbegin', SETTINGS_CONTENT_HTML(isAdmin()));
+                initSettingsListeners();
+            } else {
+                mainContent.innerHTML = `
+                    <div class="p-12 text-center text-xl text-slate-500 dark:text-slate-400">
+                        Bu özellik henüz geliştirilme aşamasındadır (${sectionName.toUpperCase()}).
+                    </div>
                 `;
             }
+        };
 
-            function calculateSummaryData(expenses, totalSpending) {
-                const breakdown = {}; 
 
-                expenses.forEach(expense => {
-                    if (!breakdown[expense.categoryId]) {
-                        breakdown[expense.categoryId] = { amount: 0, count: 0 };
+        // --- LOGIN View Logic (Updated for dynamic users) ---
+        const initLoginListeners = () => {
+            const loginForm = document.getElementById('login-form');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const errorMessage = document.getElementById('error-message');
+            const togglePassword = document.getElementById('toggle-password');
+
+            if (!loginForm) return;
+
+            // Mock kullanıcı listesini oluştur (varsa yükle)
+            getAllUsers(); 
+
+            togglePassword.addEventListener('click', () => {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+                togglePassword.querySelector('span').textContent = type === 'password' ? 'visibility_off' : 'visibility';
+            });
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                errorMessage.classList.add('hidden');
+
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+
+                const allUsers = getAllUsers();
+                const user = allUsers.find(u => u.email === email);
+
+                if (user && user.password === password) {
+                    localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email, role: user.role }));
+                    
+                    // --- MOCK DATA INITIALIZATION (Vehicles and Drivers) ---
+                    if (!localStorage.getItem('vehicles')) {
+                        const mockVehicles = [
+                            { id: 1, plate: '34 VCD 456', driver: 'Ahmet Yılmaz', type: 'Kamyon', brand: 'Mercedes-Benz', inspection_due: '2024-12-25', license_due: '2025-05-10', policy_due: '2025-06-15', note: 'Bakımları yeni yapıldı.' },
+                            { id: 2, plate: '06 ANK 789', driver: 'Ayşe Kaya', type: 'Otomobil', brand: 'Ford', inspection_due: '2025-08-15', license_due: '2026-07-20', policy_due: '2026-07-25', note: '-' },
+                            { id: 3, plate: '35 IZM 001', driver: 'Mehmet Öztürk', type: 'Tır', brand: 'Volvo', inspection_due: '2024-03-01', license_due: '2025-01-15', policy_due: '2025-02-20', note: 'Lastikler yeni değişti.' }, 
+                            { id: 4, plate: '41 KLT 222', driver: 'Ayşe Kaya', type: 'Kamyonet', brand: 'Fiat', inspection_due: '2025-01-10', license_due: '2025-02-20', policy_due: '2024-11-20', note: 'Yağ bakımı yapılacak.' },
+                            { id: 5, plate: '06 XYZ 789', driver: 'Mustafa Çelik', type: 'Panelvan', brand: 'Renault', inspection_due: '2025-04-01', license_due: '2025-08-01', policy_due: '2025-07-01', note: 'Kısa mesafe aracı.' },
+                            { id: 6, plate: '16 BRS 111', driver: 'Ahmet Yılmaz', type: 'Kamyon', brand: 'Scania', inspection_due: '2025-09-01', license_due: '2026-01-01', policy_due: '2026-01-01', note: 'Yedek araç.' },
+                        ];
+                        localStorage.setItem('vehicles', JSON.stringify(mockVehicles));
                     }
-                    breakdown[expense.categoryId].amount += expense.amount;
-                    breakdown[expense.categoryId].count += 1;
-                });
+                    
+                    if (!localStorage.getItem('drivers')) {
+                        const MOCK_DRIVERS = [
+                            { id: 101, name: 'Ahmet Yılmaz', phone: '0555 123 4567', status: 'Aktif', licenseNo: 'A1234567', tcNo: '11111111111', note: 'Uzun yol tecrübesi yüksektir.' },
+                            { id: 102, name: 'Ayşe Kaya', phone: '0532 987 6543', status: 'Aktif', licenseNo: 'B9876543', tcNo: '22222222222', note: 'Şehir içi sevkiyatlar için uygundur.' },
+                            { id: 103, name: 'Mehmet Öztürk', phone: '0544 555 8899', status: 'Aktif', licenseNo: 'C5558899', tcNo: '33333333333', note: 'TIR ehliyeti mevcuttur.' },
+                            { id: 104, name: 'Fatma Demir', phone: '0505 222 3344', status: 'Pasif', licenseNo: 'D2223344', tcNo: '44444444444', note: 'Doğum izninde.' },
+                            { id: 105, name: 'Mustafa Çelik', phone: '0533 111 7788', status: 'Aktif', licenseNo: 'E1117788', tcNo: '55555555555', note: 'Deneyimli şoför.' },
+                        ];
+                        localStorage.setItem('drivers', JSON.stringify(MOCK_DRIVERS));
+                    }
+                    // --- END MOCK DATA INITIALIZATION ---
 
-                const categoriesWithData = Object.keys(breakdown)
-                    .map(key => {
-                        const categoryInfo = getCategoryById(key);
-                        const amount = breakdown[key].amount;
-                        const percent = totalSpending > 0 ? Math.round((amount / totalSpending) * 100) : 0;
-                        
-                        return {
-                            ...categoryInfo,
-                            amount: amount,
-                            transactions: breakdown[key].count,
-                            percent: percent,
-                            id: key 
-                        };
-                    })
-                    .sort((a, b) => b.amount - a.amount);
-
-                let dashOffset = 0;
-                return categoriesWithData.map(cat => {
-                    const result = { ...cat, dashOffset: dashOffset };
-                    dashOffset -= cat.percent;
-                    return result;
-                });
-            }
-
-
-            /**
-             * Sayfadaki tüm finansal verileri günceller.
-             */
-            function updateFinancialData() {
-                // Verileri hesapla
-                const filteredExpenses = financialData.expenses; 
-                const filteredIncomes = financialData.incomes;
-                
-                const totalSpending = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-                const totalIncome = filteredIncomes.reduce((sum, i) => sum + i.amount, 0);
-                const savedAmount = totalIncome - totalSpending; // Net Varlık / Net Borç
-                
-                // Sağlık Puanı (Örnek Mantık: Gelirin %50'sini aşmayan harcama iyidir.)
-                let healthScore = totalIncome > 0 ? Math.min(100, 100 - (totalSpending / totalIncome) * 100 + 50) : 0;
-                healthScore = Math.round(healthScore);
-                
-                // Kategori listesini ve grafik verilerini hazırla
-                const topCategories = calculateSummaryData(filteredExpenses, totalSpending);
-
-
-                // I. İstatistik Kartlarını Güncelle
-                totalSpendingEl.textContent = formatCurrency(totalSpending);
-                totalIncomeEl.textContent = formatCurrency(totalIncome);
-                chartTotalSpentEl.textContent = formatCurrency(Math.round(totalSpending), true).replace(',00', '');
-
-                // II. Finansal Sağlık Göstergesini Güncelle
-                savedAmountEl.textContent = formatCurrency(savedAmount);
-                healthGaugeEl.style.width = `${healthScore}%`;
-                
-                let statusText = 'Düşük';
-                if (savedAmount < 0) {
-                    statusText = 'Borçlu';
-                    healthGaugeEl.classList.remove('bg-green-500', 'bg-yellow-500');
-                    healthGaugeEl.classList.add('bg-red-500');
-                } else if (healthScore >= 80) {
-                    statusText = 'Mükemmel';
-                    healthGaugeEl.classList.remove('bg-red-500', 'bg-yellow-500');
-                    healthGaugeEl.classList.add('bg-green-500');
-                } else if (healthScore >= 60) {
-                    statusText = 'İyi';
-                    healthGaugeEl.classList.remove('bg-red-500', 'bg-green-500');
-                    healthGaugeEl.classList.add('bg-yellow-500');
-                } else if (healthScore >= 40) {
-                    statusText = 'Orta';
-                    healthGaugeEl.classList.remove('bg-green-500', 'bg-yellow-500');
-                    healthGaugeEl.classList.add('bg-red-500');
-                }
-                
-                if(savedAmount >= 0) { // Sadece tasarruf varsa pozitif puan ver
-                    updateHealthBadge(healthScore, statusText);
-                } else { // Borç varsa kırmızı rozet
-                    updateHealthBadge(0, statusText); 
-                }
-
-
-                // III. En Çok Harcama Listesini Güncelle (Tıklanabilir Yapı)
-                topSpendingListEl.innerHTML = topCategories.map(category => `
-                    <div class="top-spending-item flex items-center gap-4 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50 cursor-pointer hover:ring-2 ring-primary/50 transition-all duration-150" 
-                         data-category-id="${category.id}">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-${category.color}-500/20 text-${category.color}-400">
-                            <span class="material-symbols-outlined">${category.icon}</span>
-                        </div>
-                        <div class="flex-1">
-                            <p class="font-bold text-gray-900 dark:text-white">${category.name}</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">${category.transactions} İşlem</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-bold text-gray-900 dark:text-white">${formatCurrency(category.amount)}</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">%${category.percent}</p>
-                        </div>
-                    </div>
-                `).join('');
-                
-                document.querySelectorAll('.top-spending-item').forEach(item => {
-                    item.removeEventListener('click', handleCategoryClick); 
-                    item.addEventListener('click', handleCategoryClick); 
-                });
-
-
-                // IV. Donut Grafik SVG'sini Güncelle
-                donutChartEl.innerHTML = totalSpending > 0 ? topCategories.map(category => `
-                    <circle cx="18" cy="18" fill="none" r="15.9155" 
-                            stroke="${category.stroke}" 
-                            stroke-dasharray="${category.percent}, 100" 
-                            stroke-dashoffset="${category.dashOffset}" 
-                            stroke-width="3.8"
-                    ></circle>
-                `).join('') : '<circle cx="18" cy="18" fill="none" r="15.9155" stroke="#a0aec0" stroke-dasharray="100, 0" stroke-width="3.8"></circle>';
-            }
-
-            // --- 4. Modal ve İşlem Yönetimi İşlevleri ---
-
-            function openModal(modalEl) {
-                modalEl.classList.add('open');
-            }
-
-            function closeModal(modalEl) {
-                modalEl.classList.remove('open');
-            }
-
-            function toggleCategoryField(type) {
-                if (type === 'income') {
-                    categoryField.classList.add('hidden');
-                    expenseCategorySelect.removeAttribute('required');
+                    renderView('panel');
                 } else {
-                    categoryField.classList.remove('hidden');
-                    expenseCategorySelect.setAttribute('required', 'required');
+                    errorMessage.classList.remove('hidden');
                 }
-            }
+            });
+        };
 
-            function toggleEditCategoryField(type) {
-                if (type === 'income') {
-                    editCategoryField.classList.add('hidden');
-                    editExpenseCategory.removeAttribute('required');
-                } else {
-                    editCategoryField.classList.remove('hidden');
-                    editExpenseCategory.setAttribute('required', 'required');
-                }
-            }
+        // --- Panel Shell Logic (Logout & Navigation) ---
+        const initPanelShellListeners = () => {
+             const logoutButton = document.getElementById('logout-button');
+             const navLinks = document.querySelectorAll('.nav-link');
+             
+             if (logoutButton) {
+                logoutButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('lastSection');
+                    renderView('login');
+                });
+             }
+
+             navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const section = e.currentTarget.dataset.section;
+                    switchPanelContent(section);
+                });
+             });
+        }
+        
+        // --- Vehicle Management Logic (Unchanged from last step) ---
+        const renderVehicleCards = (filter = '') => {
+            const vehicleList = document.getElementById('vehicle-list');
+            if (!vehicleList) return;
+
+            let vehicles = getVehicles();
+            vehicleList.innerHTML = '';
             
-            function handleCategoryClick(event) {
-                const categoryItem = event.currentTarget;
-                const categoryId = categoryItem.getAttribute('data-category-id');
-                currentCategory = categoryId; 
+            const filteredVehicles = vehicles.filter(v => 
+                v.plate.toLowerCase().includes(filter.toLowerCase()) ||
+                v.driver.toLowerCase().includes(filter.toLowerCase()) ||
+                v.type.toLowerCase().includes(filter.toLowerCase())
+            );
 
-                const categoryInfo = getCategoryById(categoryId);
-                categoryDetailsModalTitle.textContent = `${categoryInfo.name} Gider Detayları`;
-
-                renderCategoryExpenseDetails(categoryId); 
-                openModal(categoryDetailsModal);
+            if (filteredVehicles.length === 0) {
+                 vehicleList.innerHTML = `<p class="col-span-full text-center text-slate-500 dark:text-slate-400">Kayıtlı araç bulunmamaktadır.</p>`;
+                 return;
             }
 
-            function handleDeleteTransaction(transactionId, transactionType) {
-                if (!confirm("Bu işlemi silmek istediğinizden emin misiniz?")) {
-                    return;
-                }
-
-                const targetArray = transactionType.includes('expense') ? financialData.expenses : financialData.incomes;
+            filteredVehicles.forEach(vehicle => {
+                const colors = getTypeColor(vehicle.type);
                 
-                const initialTransactionIndex = targetArray.findIndex(t => t.id === transactionId);
-                
-                if (initialTransactionIndex !== -1) {
-                    targetArray.splice(initialTransactionIndex, 1);
+                const createDueDateText = (dateString) => {
+                    const dueDate = getDueDate(dateString);
+                    let text = formatDate(dateString);
                     
-                    updateFinancialData();
-                    closeModal(editModal); 
-                    
-                    if (categoryDetailsModal.classList.contains('open') && transactionType.includes('expense')) {
-                        renderCategoryExpenseDetails(currentCategory);
-                    } else if (categoryDetailsModal.classList.contains('open') && transactionType.includes('income')) {
-                        closeModal(categoryDetailsModal); 
+                    if (dueDate !== null) {
+                        if (dueDate <= 30 && dueDate > 0) {
+                            text = `<span class="font-bold text-orange-500">${text} (${dueDate} Gün Kaldı)</span>`;
+                        } else if (dueDate <= 0) {
+                            text = `<span class="font-bold text-red-500">${text} (${Math.abs(dueDate)} Gün Geçti!)</span>`;
+                        }
+                    } else {
+                        text = '-';
                     }
-                    
-                    alert("İşlem başarıyla silindi.");
-                } else {
-                    alert("İşlem bulunamadı.");
-                }
-            }
-            
-            function handleEditTransactionFromCategoryList(transactionId) {
-                const transaction = findTransaction(transactionId);
-                if (!transaction) return;
-                
-                const type = transaction.type; 
-
-                editExpenseId.value = transaction.id;
-                editTransactionType.value = type;
-                editModalTitle.textContent = (type === 'expense' ? 'Gideri' : 'Geliri') + ' Düzenle';
-
-                toggleEditCategoryField(type);
-
-                editExpenseAmount.value = transaction.amount.toFixed(2);
-                editExpenseDescription.value = transaction.description;
-                editExpenseDate.value = transaction.date; 
-
-                if (type === 'expense') {
-                    editOriginalCategoryId.value = transaction.categoryId; 
-                    editExpenseCategory.value = transaction.categoryId;
-                } else {
-                    editOriginalCategoryId.value = ''; 
-                }
-                
-                closeModal(categoryDetailsModal); 
-                openModal(editModal);     
-            }
-
-            function handleEditFormSubmit(event) {
-                event.preventDefault();
-                
-                const transactionId = parseInt(editExpenseId.value);
-                const type = editTransactionType.value;
-                const newAmount = parseFloat(editExpenseAmount.value);
-                const newDescription = editExpenseDescription.value;
-                const newDate = editExpenseDate.value; 
-
-                let newCategoryId = '';
-                if (type === 'expense') {
-                    newCategoryId = editExpenseCategory.value;
-                    if (!newCategoryId) { alert("Lütfen bir kategori seçin."); return; }
-                }
-
-                // Tekil veri kümesinde işlemi bul ve güncelle
-                const targetArray = type === 'expense' ? financialData.expenses : financialData.incomes;
-                const transaction = targetArray.find(t => t.id === transactionId);
-                
-                if (transaction) {
-                    transaction.amount = newAmount;
-                    transaction.description = newDescription;
-                    transaction.date = newDate; 
-                    
-                    if (type === 'expense') {
-                        transaction.categoryId = newCategoryId; 
-                    }
-
-                    updateFinancialData();
-                    
-                    alert("İşlem başarıyla güncellendi.");
-
-                    closeModal(editModal);
-                    
-                    if (type === 'expense') { 
-                        currentCategory = newCategoryId || editOriginalCategoryId.value;
-                        openModal(categoryDetailsModal);
-                        renderCategoryExpenseDetails(currentCategory);
-                    }
-                }
-            }
-
-            function handleAddTransaction(event) {
-                event.preventDefault(); 
-
-                const type = document.querySelector('input[name="transaction-type"]:checked').value;
-                const amount = parseFloat(document.getElementById('expense-amount').value);
-                const description = document.getElementById('expense-description').value;
-                const date = document.getElementById('expense-date').value; 
-                
-                let categoryId = type === 'expense' ? document.getElementById('expense-category').value : null;
-
-                if (isNaN(amount) || amount <= 0 || !date || (type === 'expense' && !categoryId)) {
-                    alert("Lütfen geçerli bir tutar, açıklama ve tarih girin (Gider ise kategori zorunludur).");
-                    return;
-                }
-                
-                const newTransaction = {
-                    id: type === 'expense' ? nextExpenseId++ : nextIncomeId++, 
-                    type: type,
-                    amount: amount,
-                    description: description,
-                    date: date
+                    return text;
                 };
+
+                const inspectionText = createDueDateText(vehicle.inspection_due); 
+                const licenseText = createDueDateText(vehicle.license_due);
+                const policyText = createDueDateText(vehicle.policy_due);
                 
-                if (type === 'expense') {
-                    newTransaction.categoryId = categoryId;
-                    financialData.expenses.push(newTransaction);
-                } else {
-                    financialData.incomes.push(newTransaction);
-                }
 
-                const transactionName = type === 'expense' ? 'Gider' : 'Gelir';
-                alert(`🎉 ${formatCurrency(amount)} tutarındaki ${transactionName} başarıyla eklendi!`);
+                const cardHTML = `
+                    <div id="vehicle-card-${vehicle.id}" class="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-800 transition-all hover:shadow-lg hover:border-primary dark:hover:border-primary group">
+                        <div class="p-4 cursor-pointer">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Plaka</p>
+                                    <p class="text-xl font-bold text-slate-900 dark:text-white">${vehicle.plate}</p>
+                                </div>
+                                <span class="${colors.bg} ${colors.text} text-xs font-medium px-2.5 py-0.5 rounded-full">${vehicle.type}</span>
+                            </div>
+                            <div class="mt-4">
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Şoför</p>
+                                <p class="text-base font-medium text-slate-700 dark:text-slate-300">${vehicle.driver}</p>
+                            </div>
+                        </div>
+                        <div id="details-${vehicle.id}" class="max-h-transition overflow-hidden">
+                            <div class="border-t border-slate-200 dark:border-slate-800 p-4">
+                                <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Araç Detayları</h4>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <p class="text-slate-500 dark:text-slate-400">Marka</p>
+                                        <p class="font-medium text-slate-700 dark:text-slate-300">${vehicle.brand}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-500 dark:text-slate-400">Muayene Tarihi</p>
+                                        <p class="font-medium text-slate-700 dark:text-slate-300">${inspectionText}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-500 dark:text-slate-400">Ruhsat Bitiş</p>
+                                        <p class="font-medium text-slate-700 dark:text-slate-300">${licenseText}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-500 dark:text-slate-400">Poliçe Bitiş</p>
+                                        <p class="font-medium text-slate-700 dark:text-slate-300">${policyText}</p>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <p class="text-slate-500 dark:text-slate-400">Not</p>
+                                        <p class="font-medium text-slate-700 dark:text-slate-300">${vehicle.note || '-'}</p>
+                                    </div>
+                                </div>
+                                <div id="admin-actions-${vehicle.id}" class="flex justify-end gap-2 mt-4 ${isAdmin() ? '' : 'hidden'}">
+                                    <button onclick="editVehicle(${vehicle.id})" class="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                        <span class="material-symbols-outlined text-lg">edit</span>
+                                    </button>
+                                    <button onclick="deleteVehicle(${vehicle.id})" class="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400">
+                                        <span class="material-symbols-outlined text-lg">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button data-vehicle-id="${vehicle.id}" class="toggle-details w-full text-center py-2 border-t border-slate-200 dark:border-slate-800 text-primary text-sm font-semibold">Detayları Gör</button>
+                    </div>
+                `;
+                vehicleList.insertAdjacentHTML('beforeend', cardHTML);
+            });
 
-                updateFinancialData();
-                closeModal(expenseModal);
-                addExpenseForm.reset(); 
-                document.getElementById('type-expense').checked = true;
-                toggleCategoryField('expense');
-                expenseDateInput.value = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('.toggle-details').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const vehicleId = e.target.dataset.vehicleId;
+                    const detailsDiv = document.getElementById(`details-${vehicleId}`);
+                    
+                    if (detailsDiv.style.maxHeight === '1000px') {
+                        detailsDiv.style.maxHeight = '0px';
+                        e.target.textContent = 'Detayları Gör';
+                    } else {
+                        detailsDiv.style.maxHeight = '1000px'; 
+                        e.target.textContent = 'Detayları Gizle';
+                    }
+                });
+            });
+        };
+
+        const editVehicle = (id) => {
+            if (!isAdmin()) return; 
+
+            let vehicles = getVehicles();
+            const vehicle = vehicles.find(v => v.id === id);
+            
+            const formTitle = document.getElementById('form-title');
+            const vehicleIdInput = document.getElementById('vehicle-id');
+            const plateInput = document.getElementById('plate');
+            const driverInput = document.getElementById('driver');
+            const typeInput = document.getElementById('type');
+            const brandInput = document.getElementById('brand');
+            const licenseDueInput = document.getElementById('license-due');
+            const policyDueInput = document.getElementById('policy-due');
+            const inspectionDueInput = document.getElementById('inspection-due');
+            const noteInput = document.getElementById('note');
+
+            if (vehicle) {
+                formTitle.textContent = `Araç Düzenle: ${vehicle.plate}`;
+                vehicleIdInput.value = vehicle.id;
+                plateInput.value = vehicle.plate;
+                driverInput.value = vehicle.driver;
+                typeInput.value = vehicle.type;
+                brandInput.value = vehicle.brand;
+                licenseDueInput.value = vehicle.license_due || '';
+                policyDueInput.value = vehicle.policy_due || '';
+                inspectionDueInput.value = vehicle.inspection_due || '';
+                noteInput.value = vehicle.note || '';
+                
+                document.getElementById('vehicle-form-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+
+        const deleteVehicle = (id) => {
+            if (!isAdmin()) return; 
+
+            if (confirm('Bu aracı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+                let vehicles = getVehicles();
+                vehicles = vehicles.filter(v => v.id !== id);
+                localStorage.setItem('vehicles', JSON.stringify(vehicles));
+                alert('Araç başarıyla silindi.');
+                renderVehicleCards(document.getElementById('search-input').value || '');
+            }
+        };
+        
+        window.editVehicle = editVehicle;
+        window.deleteVehicle = deleteVehicle;
+
+        const initVehicleManagementListeners = () => {
+            const vehicleForm = document.getElementById('vehicle-form');
+            const searchInput = document.getElementById('search-input');
+            const formTitle = document.getElementById('form-title');
+            
+            const vehicleIdInput = document.getElementById('vehicle-id');
+            const plateInput = document.getElementById('plate');
+            const driverInput = document.getElementById('driver');
+            const typeInput = document.getElementById('type');
+            const brandInput = document.getElementById('brand');
+            const licenseDueInput = document.getElementById('license-due');
+            const policyDueInput = document.getElementById('policy-due');
+            const inspectionDueInput = document.getElementById('inspection-due');
+            const noteInput = document.getElementById('note');
+
+            if (vehicleForm) {
+                vehicleForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    if (!isAdmin()) return;
+
+                    let vehicles = getVehicles();
+                    const isEditing = !!vehicleIdInput.value;
+
+                    const newVehicle = {
+                        id: isEditing ? parseInt(vehicleIdInput.value) : Date.now(),
+                        plate: plateInput.value,
+                        driver: driverInput.value,
+                        type: typeInput.value,
+                        brand: brandInput.value,
+                        license_due: licenseDueInput.value,
+                        policy_due: policyDueInput.value,
+                        inspection_due: inspectionDueInput.value,
+                        note: noteInput.value
+                    };
+
+                    if (isEditing) {
+                        vehicles = vehicles.map(v => v.id === newVehicle.id ? newVehicle : v);
+                        
+                    } else {
+                        vehicles.push(newVehicle);
+                    }
+
+                    localStorage.setItem('vehicles', JSON.stringify(vehicles));
+                    
+                    alert(`Araç başarıyla ${isEditing ? 'güncellendi' : 'eklendi'}!`);
+                    vehicleForm.reset();
+                    vehicleIdInput.value = '';
+                    formTitle.textContent = 'Yeni Araç Ekle';
+                    renderVehicleCards(searchInput.value);
+                });
+                
+                vehicleForm.addEventListener('reset', () => {
+                    formTitle.textContent = 'Yeni Araç Ekle';
+                    vehicleIdInput.value = '';
+                });
             }
 
-            function renderCategoryExpenseDetails(categoryId) {
-                const categoryExpenses = financialData.expenses 
-                    .filter(e => e.categoryId === categoryId)
-                    .sort((a, b) => new Date(b.date) - new Date(a.date)); 
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    renderVehicleCards(e.target.value);
+                });
+            }
 
-                if (categoryExpenses.length === 0) {
-                    expenseDetailsList.innerHTML = '';
-                    noExpensesMessage.classList.remove('hidden');
-                    return;
-                }
+            renderVehicleCards('');
+        };
+        
+        // --- Reports Logic (Unchanged from last step) ---
+        
+        const calculateReportData = (vehicles) => {
+            const data = {
+                totalCount: vehicles.length,
+                dueDates: { license: [], policy: [], inspection: [] },
+                criticalEvents: [],
+                typeDistribution: {},
+                driverDistribution: {},
+                THRESHOLD_DAYS: 30
+            };
 
-                noExpensesMessage.classList.add('hidden');
+            vehicles.forEach(vehicle => {
+                const checkDate = (dateString, type) => {
+                    if (!dateString) return;
+                    const daysLeft = getDueDate(dateString);
+                    
+                    if (daysLeft !== null && daysLeft >= 0) {
+                        if (type === 'Ruhsat') data.dueDates.license.push(daysLeft);
+                        if (type === 'Poliçe') data.dueDates.policy.push(daysLeft);
+                        if (type === 'Muayene') data.dueDates.inspection.push(daysLeft);
+                    }
+
+                    if (daysLeft !== null && daysLeft <= data.THRESHOLD_DAYS) {
+                        data.criticalEvents.push({
+                            plate: vehicle.plate,
+                            driver: vehicle.driver,
+                            type: type,
+                            dueDate: dateString,
+                            daysLeft: daysLeft
+                        });
+                    }
+                };
+
+                checkDate(vehicle.inspection_due, 'Muayene');
+                checkDate(vehicle.license_due, 'Ruhsat');
+                checkDate(vehicle.policy_due, 'Poliçe');
                 
-                expenseDetailsList.innerHTML = categoryExpenses.map(e => {
-                    const category = getCategoryById(e.categoryId);
-                    const formattedDate = new Date(e.date).toLocaleDateString('tr-TR');
-                    return `
-                        <div class="flex justify-between items-center p-3 rounded-lg bg-gray-200 dark:bg-gray-700/70 border border-gray-300/50 dark:border-gray-600/50">
-                            <div class="flex-1 min-w-0">
-                                <p class="font-bold text-gray-900 dark:text-white truncate">${e.description || 'Açıklama Yok'}</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">${formattedDate} &bull; ${category.name}</p>
+                data.typeDistribution[vehicle.type] = (data.typeDistribution[vehicle.type] || 0) + 1;
+                data.driverDistribution[vehicle.driver] = (data.driverDistribution[vehicle.driver] || 0) + 1;
+            });
+            
+            const calculateAvg = (arr) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+            data.averages = {
+                license: calculateAvg(data.dueDates.license),
+                policy: calculateAvg(data.dueDates.policy),
+                inspection: calculateAvg(data.dueDates.inspection)
+            };
+            
+            data.criticalEvents.sort((a, b) => a.daysLeft - b.daysLeft);
+            
+            data.sortedTypeDistribution = Object.entries(data.typeDistribution)
+                .map(([type, count]) => ({ 
+                    type, 
+                    count, 
+                    percentage: (count / data.totalCount) * 100 
+                }))
+                .sort((a, b) => b.count - a.count);
+            
+            data.sortedDriverDistribution = Object.entries(data.driverDistribution)
+                .map(([driver, count]) => ({ driver, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5);
+                
+            return data;
+        };
+
+        const renderReportsPanel = (reportData) => {
+            const { totalCount, averages, criticalEvents, sortedTypeDistribution, sortedDriverDistribution } = reportData;
+            
+            document.getElementById('stat-total-vehicles').textContent = totalCount;
+            document.getElementById('stat-avg-license').textContent = `${averages.license} gün`;
+            document.getElementById('stat-avg-policy').textContent = `${averages.policy} gün`;
+            document.getElementById('stat-avg-inspection').textContent = `${averages.inspection} gün`;
+
+            const reportsTableBody = document.getElementById('reports-table-body');
+            const noReportsMessage = document.getElementById('no-reports-message');
+            
+            reportsTableBody.innerHTML = '';
+            
+            if (criticalEvents.length === 0) {
+                noReportsMessage.classList.remove('hidden');
+            } else {
+                noReportsMessage.classList.add('hidden');
+                criticalEvents.forEach(event => {
+                    let statusText, statusClasses;
+                    
+                    if (event.daysLeft <= 0) {
+                        const passedDays = Math.abs(event.daysLeft);
+                        statusText = `${passedDays} Gün Geçti`;
+                        statusClasses = 'text-white bg-red-600 dark:bg-red-800';
+                    } else if (event.daysLeft <= 10) {
+                        statusText = `${event.daysLeft} Gün Kaldı`;
+                        statusClasses = 'text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50';
+                    } else {
+                        statusText = `${event.daysLeft} Gün Kaldı`;
+                        statusClasses = 'text-orange-700 bg-orange-100 dark:text-orange-200 dark:bg-orange-900/50';
+                    }
+
+                    const rowHTML = `
+                        <tr class="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <th class="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">${event.plate}</th>
+                            <td class="px-6 py-4">${event.driver}</td>
+                            <td class="px-6 py-4">${event.type}</td>
+                            <td class="px-6 py-4">${formatDate(event.dueDate)}</td>
+                            <td class="px-6 py-4 text-right">
+                                <span class="inline-flex items-center justify-center font-semibold text-xs rounded-full px-2.5 py-1 ${statusClasses}">${statusText}</span>
+                            </td>
+                        </tr>
+                    `;
+                    reportsTableBody.insertAdjacentHTML('beforeend', rowHTML);
+                });
+            }
+
+            const donutPaths = document.getElementById('donut-chart-paths');
+            const donutLegend = document.getElementById('donut-legend');
+            document.getElementById('donut-total-count').textContent = totalCount;
+            donutPaths.innerHTML = '';
+            donutLegend.innerHTML = '';
+
+            let cumulativeOffset = 0;
+
+            if (totalCount > 0) {
+                sortedTypeDistribution.forEach((item, index) => {
+                    const percentage = item.percentage.toFixed(1);
+                    const color = DONUT_COLORS[index % DONUT_COLORS.length];
+                    const dashArray = `${percentage}, 100`;
+
+                    const path = `<path class="stroke-[${color}]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke-dasharray="${dashArray}" stroke-dashoffset="-${cumulativeOffset}" stroke-linecap="round" stroke-width="3" style="stroke: ${color};"></path>`;
+                    donutPaths.insertAdjacentHTML('beforeend', path);
+                    cumulativeOffset += percentage;
+
+                    const legendHTML = `
+                        <div class="flex justify-between items-center text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full" style="background-color: ${color};"></span>
+                                <span class="text-slate-600 dark:text-slate-300">${item.type}</span>
                             </div>
-                            <div class="text-right flex items-center gap-2 shrink-0">
-                                <span class="font-bold text-lg text-red-600 dark:text-red-400">${formatCurrency(e.amount)}</span>
-                                <button type="button" data-edit-id="${e.id}" class="edit-transaction-btn-from-list text-primary hover:text-primary/80 transition-colors duration-150 p-1 rounded-full">
-                                    <span class="material-symbols-outlined text-xl">edit</span>
-                                </button>
-                                <button type="button" data-delete-id="${e.id}" data-type="expense-edit" class="delete-transaction-btn-from-list text-red-500 hover:text-red-400 transition-colors duration-150 p-1 rounded-full">
-                                    <span class="material-symbols-outlined text-xl">delete</span>
-                                </button>
-                            </div>
+                            <span class="font-medium text-slate-800 dark:text-slate-200">${item.count} Araç (${percentage}%)</span>
                         </div>
                     `;
-                }).join('');
-
-                document.querySelectorAll('.delete-transaction-btn-from-list').forEach(btn => {
-                    btn.addEventListener('click', (e) => handleDeleteTransaction(parseInt(e.currentTarget.getAttribute('data-delete-id')), e.currentTarget.getAttribute('data-type')));
+                    donutLegend.insertAdjacentHTML('beforeend', legendHTML);
                 });
-                document.querySelectorAll('.edit-transaction-btn-from-list').forEach(btn => {
-                    btn.addEventListener('click', (e) => handleEditTransactionFromCategoryList(parseInt(e.currentTarget.getAttribute('data-edit-id'))));
-                });
+            } else {
+                 donutLegend.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">Hiç araç kaydı yok.</p>`;
             }
 
-            function populateCategorySelects() {
-                const optionsHtml = CATEGORIES.map(cat => 
-                    `<option value="${cat.id}">${cat.name}</option>`
-                ).join('');
-                
-                expenseCategorySelect.innerHTML = optionsHtml;
-                editExpenseCategory.innerHTML = optionsHtml;
-            }
-
-            // --- SIFIRLAMA İŞLEVİ ---
-            function handleResetAllData() {
-                if (confirm("UYARI: Tüm harcamalarınız ve gelirleriniz silinecektir! Bu işlemi geri alamazsınız. Devam etmek istiyor musunuz?")) {
-                    financialData = { expenses: [], incomes: [] }; // Verileri tamamen sıfırla
-                    nextExpenseId = 1000;
-                    nextIncomeId = 2000;
-
-                    updateFinancialData();
-                    closeModal(settingsModal);
-                    alert("Tüm finansal verileriniz başarıyla sıfırlandı.");
-                }
-            }
-
-            // --- Karanlık Mod İşlevi (Ekstra) ---
-            function toggleDarkMode(isDark) {
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            }
+            const barChartBars = document.getElementById('bar-chart-bars');
+            barChartBars.innerHTML = '';
+            barChartBars.className = `grid grid-cols-${sortedDriverDistribution.length || 1} gap-4 h-full items-end pt-2`;
             
-            // --- 5. Başlatma ve Olay Dinleyicileri ---
+            const maxCount = sortedDriverDistribution.length > 0 ? Math.max(...sortedDriverDistribution.map(d => d.count)) : 0;
+            const barCount = sortedDriverDistribution.length;
             
-            document.addEventListener('DOMContentLoaded', () => {
-                // Karanlık mod kontrolü
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    toggleDarkMode(true);
-                    darkModeToggle.checked = true;
-                }
-
-                darkModeToggle.addEventListener('change', (e) => {
-                    toggleDarkMode(e.target.checked);
-                });
-                
-                // Kategori seçim kutularını doldur
-                populateCategorySelects();
-                
-                // Varsayılan olarak bugünün tarihini ayarla
-                const today = new Date().toISOString().split('T')[0];
-                expenseDateInput.value = today;
-
-                // İşlem Tipi Değişikliği Dinleyicisi
-                transactionTypeRadios.forEach(radio => {
-                    radio.addEventListener('change', (e) => toggleCategoryField(e.target.value));
-                });
-
-                // Modal Kapatma Dinleyicileri için ortak işlev
-                const setupModalListeners = (modalId, formId = null, reopenModalId = null) => {
-                    const modalEl = document.getElementById(modalId);
+            if (barCount > 0) {
+                sortedDriverDistribution.forEach(item => {
+                    const heightPercent = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                     
-                    // Kapatma butonları
-                    document.querySelectorAll(`[data-close-modal="${modalId}"]`).forEach(btn => btn.addEventListener('click', () => {
-                        closeModal(modalEl);
-                        if (reopenModalId) {
-                            openModal(document.getElementById(reopenModalId));
-                        }
-                    }));
-                    
-                    // Arka plana tıklama
-                    modalEl.addEventListener('click', (e) => { 
-                        if (e.target.id === modalId) {
-                            closeModal(modalEl);
-                            if (reopenModalId) {
-                                openModal(document.getElementById(reopenModalId));
-                            }
-                        }
-                    });
-
-                    // Form Gönderim Dinleyicileri
-                    if (formId === 'add-expense-form') {
-                        document.getElementById(formId).addEventListener('submit', handleAddTransaction);
-                    } else if (formId === 'edit-expense-form') {
-                        document.getElementById(formId).addEventListener('submit', handleEditFormSubmit);
-                    }
-                };
-
-                // Gider/İşlem Ekleme Modal Dinleyicileri
-                document.getElementById('open-expense-modal-btn').addEventListener('click', () => {
-                    openModal(expenseModal);
-                    document.getElementById('type-expense').checked = true;
-                    toggleCategoryField('expense');
+                    const barHTML = `
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="w-full bg-primary/20 dark:bg-primary/30 rounded-t-md relative" style="height: ${heightPercent}%;">
+                                <div class="w-full h-full bg-primary rounded-t-md"></div>
+                                <span class="absolute top-[-20px] text-xs font-bold text-primary dark:text-white">${item.count}</span>
+                            </div>
+                            <p class="text-slate-500 dark:text-slate-400 text-xs font-medium text-center">${item.driver.split(' ')[0]}</p>
+                        </div>
+                    `;
+                    barChartBars.insertAdjacentHTML('beforeend', barHTML);
                 });
-                setupModalListeners('expense-modal', 'add-expense-form');
-                
-                // Kategori Detay Modal Dinleyicileri
-                setupModalListeners('category-details-modal');
+            } else {
+                 barChartBars.innerHTML = `<p class="col-span-5 text-center text-slate-500 dark:text-slate-400">Veri bulunmamaktadır.</p>`;
+            }
+        };
 
-                // İşlem Düzenleme Modal Dinleyicileri
-                setupModalListeners('edit-modal', 'edit-expense-form', 'category-details-modal');
-
-                // AYARLAR MODAL DİNLEYİCİLERİ
-                document.getElementById('open-settings-modal-btn').addEventListener('click', () => openModal(settingsModal));
-                setupModalListeners('settings-modal'); 
-                
-                // SIFIRLAMA BUTONU DİNLEYİCİSİ
-                resetDataBtn.addEventListener('click', handleResetAllData);
-
-
-                // İlk verileri yükle
-                updateFinancialData();
+        const initReportsListeners = () => {
+             const vehicles = getVehicles();
+             const reportData = calculateReportData(vehicles);
+             renderReportsPanel(reportData);
+        };
+        
+        // --- Drivers Management Logic (Unchanged from last step) ---
+        
+        const getDriverVehicleCount = (driverName, vehicles) => {
+            return vehicles.filter(v => v.driver === driverName).length;
+        };
+        
+        const renderDriverTable = (filter = '', statusFilter = 'Tümü') => {
+            const driverListBody = document.getElementById('driver-list-body');
+            const paginationInfo = document.getElementById('pagination-info');
+            if (!driverListBody) return;
+            
+            const drivers = getDrivers();
+            const vehicles = getVehicles();
+            driverListBody.innerHTML = '';
+            
+            const filteredDrivers = drivers.filter(d => {
+                const matchesFilter = statusFilter === 'Tümü' || d.status === statusFilter;
+                const matchesSearch = d.name.toLowerCase().includes(filter.toLowerCase()) || 
+                                      d.phone.includes(filter) || 
+                                      d.tcNo.includes(filter);
+                return matchesFilter && matchesSearch;
             });
-        </script>
 
-    </div>
+            paginationInfo.textContent = `${filteredDrivers.length} sonuç gösteriliyor`;
+
+            if (filteredDrivers.length === 0) {
+                driverListBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="h-[72px] text-center text-slate-500 dark:text-slate-400 text-sm">
+                            Filtreleme kriterlerine uygun şoför bulunamadı.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filteredDrivers.forEach(driver => {
+                const vehicleCount = getDriverVehicleCount(driver.name, vehicles);
+                const vehicleText = vehicleCount > 0 ? `${vehicleCount} Araç` : 'Atanmamış';
+                const vehiclePlates = vehicles.filter(v => v.driver === driver.name).map(v => v.plate).join(', ');
+
+                const statusBg = driver.status === 'Aktif' ? 'bg-green-100 dark:bg-green-500/20' : 'bg-slate-100 dark:bg-slate-500/20';
+                const statusText = driver.status === 'Aktif' ? 'text-green-700 dark:text-green-400' : 'text-slate-700 dark:text-slate-400';
+                const statusDot = driver.status === 'Aktif' ? 'bg-green-500' : 'bg-slate-500';
+
+                const rowHTML = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="h-[72px] px-6 py-2 text-slate-800 dark:text-slate-200 text-sm font-medium">${driver.name}</td>
+                        <td class="h-[72px] px-6 py-2 text-slate-600 dark:text-slate-400 text-sm">${driver.phone}</td>
+                        <td class="h-[72px] px-6 py-2 text-slate-600 dark:text-slate-400 text-sm" title="${vehiclePlates || 'Atanmış araç yok.'}">${vehicleText}</td>
+                        <td class="h-[72px] px-6 py-2">
+                            <span class="inline-flex items-center gap-x-1.5 rounded-full ${statusBg} px-2.5 py-1 text-xs font-medium ${statusText}">
+                                <span class="size-1.5 rounded-full ${statusDot}"></span>
+                                ${driver.status}
+                            </span>
+                        </td>
+                        <td class="h-[72px] px-6 py-2 text-right">
+                            <div class="flex justify-end gap-2 ${isAdmin() ? '' : 'hidden'}">
+                                <button onclick="editDriver(${driver.id})" class="flex items-center justify-center size-8 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Düzenle">
+                                    <span class="material-symbols-outlined !text-xl">edit</span>
+                                </button>
+                                <button onclick="deleteDriver(${driver.id})" class="flex items-center justify-center size-8 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400" title="Sil">
+                                    <span class="material-symbols-outlined !text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                driverListBody.insertAdjacentHTML('beforeend', rowHTML);
+            });
+        };
+        
+        const openDriverForm = (driver = null) => {
+            const formContainer = document.getElementById('driver-form-container');
+            const formTitle = document.getElementById('driver-form-title');
+            const driverIdInput = document.getElementById('driver-id');
+            const driverNameInput = document.getElementById('driver-name');
+            const driverPhoneInput = document.getElementById('driver-phone');
+            const driverTCNoInput = document.getElementById('driver-tc-no');
+            const driverLicenseNoInput = document.getElementById('driver-license-no');
+            const driverStatusInput = document.getElementById('driver-status');
+            const driverNoteInput = document.getElementById('driver-note');
+            
+            if (driver) {
+                formTitle.textContent = `Şoför Düzenle: ${driver.name}`;
+                driverIdInput.value = driver.id;
+                driverNameInput.value = driver.name;
+                driverPhoneInput.value = driver.phone;
+                driverTCNoInput.value = driver.tcNo || '';
+                driverLicenseNoInput.value = driver.licenseNo;
+                driverStatusInput.value = driver.status;
+                driverNoteInput.value = driver.note || '';
+            } else {
+                formTitle.textContent = 'Yeni Şoför Ekle';
+                document.getElementById('driver-form').reset();
+                driverIdInput.value = '';
+                driverStatusInput.value = 'Aktif';
+            }
+            formContainer.classList.remove('hidden');
+            formContainer.scrollIntoView({ behavior: 'smooth' });
+        };
+        
+        const closeDriverForm = () => {
+             document.getElementById('driver-form-container').classList.add('hidden');
+        };
+
+        const editDriver = (id) => {
+             if (!isAdmin()) return; 
+             const driver = getDrivers().find(d => d.id === id);
+             if (driver) openDriverForm(driver);
+        };
+        
+        const deleteDriver = (id) => {
+             if (!isAdmin()) return; 
+             const driver = getDrivers().find(d => d.id === id);
+             if (driver && confirm(`${driver.name} adlı şoförü silmek istediğinizden emin misiniz?`)) {
+                 let drivers = getDrivers().filter(d => d.id !== id);
+                 localStorage.setItem('drivers', JSON.stringify(drivers));
+                 alert('Şoför başarıyla silindi.');
+                 renderDriverTable(document.getElementById('driver-search-input').value, document.querySelector('.driver-filter-chip.bg-primary\\/20, .driver-filter-chip.dark\\:bg-primary\\/30 p').textContent);
+             }
+        };
+        
+        window.editDriver = editDriver;
+        window.deleteDriver = deleteDriver;
+        
+        let currentDriverStatusFilter = 'Tümü';
+
+        const initDriversManagementListeners = () => {
+            const addDriverButton = document.getElementById('add-driver-button');
+            const driverForm = document.getElementById('driver-form');
+            const searchInput = document.getElementById('driver-search-input');
+            const filterChips = document.querySelectorAll('.driver-filter-chip');
+            const cancelButton = document.getElementById('cancel-driver-button');
+
+            if (isAdmin()) {
+                addDriverButton?.addEventListener('click', () => openDriverForm());
+                cancelButton?.addEventListener('click', () => closeDriverForm());
+
+                driverForm?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    let drivers = getDrivers();
+                    const isEditing = !!document.getElementById('driver-id').value;
+                    const driverId = isEditing ? parseInt(document.getElementById('driver-id').value) : Date.now();
+                    
+                    const newDriver = {
+                        id: driverId,
+                        name: document.getElementById('driver-name').value,
+                        phone: document.getElementById('driver-phone').value,
+                        tcNo: document.getElementById('driver-tc-no').value,
+                        licenseNo: document.getElementById('driver-license-no').value,
+                        status: document.getElementById('driver-status').value,
+                        note: document.getElementById('driver-note').value,
+                    };
+                    
+                    if (isEditing) {
+                        drivers = drivers.map(d => d.id === newDriver.id ? newDriver : d);
+                    } else {
+                        drivers.push(newDriver);
+                    }
+                    
+                    localStorage.setItem('drivers', JSON.stringify(drivers));
+                    alert(`Şoför başarıyla ${isEditing ? 'güncellendi' : 'eklendi'}!`);
+                    closeDriverForm();
+                    renderDriverTable(searchInput.value, currentDriverStatusFilter);
+                });
+            }
+            
+            searchInput.addEventListener('input', (e) => {
+                renderDriverTable(e.target.value, currentDriverStatusFilter);
+            });
+            
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    filterChips.forEach(c => {
+                        c.classList.remove('bg-primary/20', 'dark:bg-primary/30');
+                        c.querySelector('p').classList.remove('text-primary', 'dark:text-white');
+                        c.classList.add('hover:bg-slate-200', 'dark:hover:bg-slate-800');
+                        c.querySelector('p').classList.add('text-slate-600', 'dark:text-slate-300');
+                    });
+                    
+                    e.currentTarget.classList.add('bg-primary/20', 'dark:bg-primary/30');
+                    e.currentTarget.querySelector('p').classList.add('text-primary', 'dark:text-white');
+                    e.currentTarget.classList.remove('hover:bg-slate-200', 'dark:hover:bg-slate-800');
+                    e.currentTarget.querySelector('p').classList.remove('text-slate-600', 'dark:text-slate-300');
+                    
+                    currentDriverStatusFilter = e.currentTarget.dataset.filter;
+                    renderDriverTable(searchInput.value, currentDriverStatusFilter);
+                });
+            });
+
+            renderDriverTable();
+        };
+        
+        // --- Settings Management Logic (NEW) ---
+        
+        const renderUserTable = () => {
+            const userListBody = document.getElementById('user-list-body');
+            const noUsersMessage = document.getElementById('no-users-message');
+            const currentUser = getCurrentUser(); 
+            
+            if (!userListBody) return;
+            
+            const users = getAllUsers();
+            userListBody.innerHTML = '';
+
+            if (users.length === 0) {
+                noUsersMessage.classList.remove('hidden');
+                return;
+            }
+            noUsersMessage.classList.add('hidden');
+
+            users.forEach(user => {
+                const isSelf = user.email === currentUser.email;
+                // Admin kendisini silemez. Düzenleme butonu her zaman açık, ancak Standart kullanıcı ise hepsi disabled.
+                const canDelete = isAdmin() && !isSelf; 
+                
+                const roleBg = user.role === 'admin' ? 'bg-red-100 dark:bg-red-500/20' : 'bg-green-100 dark:bg-green-500/20';
+                const roleText = user.role === 'admin' ? 'text-red-700 dark:text-red-400' : 'text-green-700 dark:text-green-400';
+                const roleDisplay = user.role === 'admin' ? 'Admin' : 'Standart Kullanıcı';
+                
+                const rowHTML = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="h-[60px] px-6 py-2 text-slate-800 dark:text-slate-200 text-sm font-medium">${user.name} ${isSelf ? '(Siz)' : ''}</td>
+                        <td class="h-[60px] px-6 py-2 text-slate-600 dark:text-slate-400 text-sm">${user.email}</td>
+                        <td class="h-[60px] px-6 py-2">
+                            <span class="inline-flex items-center rounded-full ${roleBg} px-2.5 py-0.5 text-xs font-medium ${roleText}">${roleDisplay}</span>
+                        </td>
+                        <td class="h-[60px] px-6 py-2 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="editUser(${user.id})" class="flex items-center justify-center size-8 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Düzenle" ${isAdmin() ? '' : 'disabled'}>
+                                    <span class="material-symbols-outlined !text-xl">edit</span>
+                                </button>
+                                <button onclick="deleteUser(${user.id})" class="flex items-center justify-center size-8 rounded-lg ${canDelete ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-500/20 dark:text-red-400' : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'}" title="${isSelf ? 'Kendi hesabınızı silemezsiniz' : 'Sil'}" ${canDelete ? '' : 'disabled'}>
+                                    <span class="material-symbols-outlined !text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                userListBody.insertAdjacentHTML('beforeend', rowHTML);
+            });
+        };
+
+        const openUserForm = (user = null) => {
+            if (!isAdmin()) return; 
+            const formContainer = document.getElementById('user-form-container');
+            const formTitle = document.getElementById('user-form-title');
+            const userIdInput = document.getElementById('user-id');
+            const userNameInput = document.getElementById('user-name');
+            const userEmailInput = document.getElementById('user-email');
+            const userPasswordInput = document.getElementById('user-password');
+            const userRoleSelect = document.getElementById('user-role');
+            
+            document.getElementById('user-form').reset();
+            userPasswordInput.required = true;
+
+            if (user) {
+                formTitle.textContent = `Kullanıcı Düzenle: ${user.name}`;
+                userIdInput.value = user.id;
+                userNameInput.value = user.name;
+                userEmailInput.value = user.email;
+                userRoleSelect.value = user.role;
+                userPasswordInput.required = false; 
+                userPasswordInput.placeholder = 'Değiştirmeyecekseniz boş bırakın';
+            } else {
+                formTitle.textContent = 'Yeni Kullanıcı Ekle';
+                userIdInput.value = '';
+                userPasswordInput.placeholder = 'Şifre';
+            }
+            formContainer.classList.remove('hidden');
+            formContainer.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        const closeUserForm = () => {
+             document.getElementById('user-form-container').classList.add('hidden');
+             document.getElementById('user-form').reset();
+             document.getElementById('user-id').value = '';
+        };
+
+        const editUser = (id) => {
+             if (!isAdmin()) return; 
+             const user = getAllUsers().find(u => u.id === id);
+             if (user) openUserForm(user);
+        };
+
+        const deleteUser = (id) => {
+             if (!isAdmin()) return; 
+             const allUsers = getAllUsers();
+             const userToDelete = allUsers.find(u => u.id === id);
+             const currentUser = getCurrentUser();
+
+             if (userToDelete && userToDelete.email === currentUser.email) {
+                 alert('Hata: Kendi hesabınızı silemezsiniz.');
+                 return;
+             }
+
+             if (userToDelete && confirm(`${userToDelete.name} (${userToDelete.email}) adlı kullanıcıyı silmek istediğinizden emin misiniz?`)) {
+                 let updatedUsers = allUsers.filter(u => u.id !== id);
+                 localStorage.setItem('users', JSON.stringify(updatedUsers));
+                 alert('Kullanıcı başarıyla silindi.');
+                 renderUserTable();
+             }
+        };
+
+        window.editUser = editUser;
+        window.deleteUser = deleteUser;
+
+
+        const initSettingsListeners = () => {
+            if (!isAdmin()) {
+                 // Standart kullanıcılar için sadeleştirilmiş görünüm
+                document.getElementById('main-content').innerHTML = `
+                    <div class="layout-content-container flex flex-col w-full max-w-7xl mx-auto flex-1 gap-6">
+                        <header class="flex flex-col gap-2 mb-6">
+                            <h1 class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Ayarlar</h1>
+                            <p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Hesap ve genel uygulama ayarları.</p>
+                        </header>
+                        <section class="p-12 text-center text-xl text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                            Kullanıcı Yönetimi ve Kritik Ayarlar sadece Admin yetkisine sahip kullanıcılar tarafından erişilebilir.
+                        </section>
+                    </div>
+                `;
+                return;
+            }
+            
+            const addUserButton = document.getElementById('add-user-button');
+            const userForm = document.getElementById('user-form');
+            const cancelButton = document.getElementById('cancel-user-button');
+
+            // 1. Render Table
+            renderUserTable();
+            
+            // 2. Add/Cancel Button Listeners
+            addUserButton?.addEventListener('click', () => openUserForm());
+            cancelButton?.addEventListener('click', () => closeUserForm());
+            
+            // 3. Form Submission
+            userForm?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                let users = getAllUsers();
+                const isEditing = !!document.getElementById('user-id').value;
+                const userId = isEditing ? parseInt(document.getElementById('user-id').value) : Date.now();
+                
+                const name = document.getElementById('user-name').value;
+                const email = document.getElementById('user-email').value;
+                const passwordInput = document.getElementById('user-password').value;
+                const role = document.getElementById('user-role').value;
+                
+                let existingUser = users.find(u => u.id === userId);
+                
+                const emailExists = users.some(u => u.email === email && u.id !== userId);
+                if (emailExists) {
+                     alert('Hata: Bu e-posta adresi zaten başka bir kullanıcıya aittir.');
+                     return;
+                }
+
+                let newPassword = passwordInput || (existingUser ? existingUser.password : null);
+                
+                if (!newPassword && !isEditing) {
+                    alert('Lütfen bir şifre belirleyin.');
+                    return;
+                }
+
+                const newUser = {
+                    id: userId,
+                    name: name,
+                    email: email,
+                    // Şifre boş bırakıldıysa, eskisini koru
+                    password: newPassword, 
+                    role: role,
+                };
+                
+                if (isEditing) {
+                    users = users.map(u => u.id === newUser.id ? newUser : u);
+                } else {
+                    users.push(newUser);
+                }
+                
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                // Eğer mevcut kullanıcının rolü veya adı değiştiyse, oturumu güncelle
+                const currentUser = getCurrentUser();
+                if (currentUser.email === newUser.email && (currentUser.role !== newUser.role || currentUser.name !== newUser.name)) {
+                     alert('Hesap bilgileriniz güncellendi. Yetki değişikliği varsa yeniden giriş yapmanız gerekebilir.');
+                     localStorage.setItem('currentUser', JSON.stringify({ name: newUser.name, email: newUser.email, role: newUser.role }));
+                     closeUserForm();
+                     renderView('panel'); // Paneli yeniden yükle
+                     return;
+                }
+                
+                alert(`Kullanıcı başarıyla ${isEditing ? 'güncellendi' : 'eklendi'}!`);
+                closeUserForm();
+                renderUserTable();
+            });
+        };
+
+
+        // --- Uygulama Başlatıcı ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if (getCurrentUser()) {
+                renderView('panel');
+            } else {
+                renderView('login');
+            }
+        });
+    </script>
 </body>
 </html>
